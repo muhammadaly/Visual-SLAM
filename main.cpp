@@ -14,12 +14,22 @@
 #include <iomanip>
 #include <framedata.h>
 
+#include <eigen3/Eigen/Core>
+#include <pcl/point_types.h>
+#include <pcl/point_cloud.h>
+
 using namespace std;
 using namespace cv;
 using namespace cv::xfeatures2d;
 
 void readme();
 ofstream myfile;
+
+static const float fx = 525.0;  // focal length x
+static const float fy = 525.0;  // focal length y
+static const float cx = 319.5;  // optical center x
+static const float cy = 239.5;  // optical center y
+
 void RenderCVMatrix(cv::Mat pMat , int numCol , int numRow)
 {
     for(int i = 0 ; i < pMat.rows && i< numRow ; i++)
@@ -57,7 +67,9 @@ vector<FrameData> readFolderOfImages(std::string FirstImageFileName , std::strin
     vector<FrameData> frames ;
     for(size_t i = 0 ; i < ret.size()-1; i++){
         cv::Mat image = cv::imread(ret[i], CV_LOAD_IMAGE_COLOR);
-        cv::Mat Dimage = cv::imread(Dret[i],CV_LOAD_IMAGE_ANYDEPTH);
+        cv::Mat Dimage = cv::imread(Dret[i],CV_LOAD_IMAGE_ANYDEPTH | CV_LOAD_IMAGE_ANYCOLOR);
+        Dimage.convertTo(Dimage , CV_16U);
+        //RenderCVMatrix(Dimage,2,2);
         if(image.data )
         {
             frames.push_back(FrameData(image , ret[i],Dimage));
@@ -68,35 +80,50 @@ vector<FrameData> readFolderOfImages(std::string FirstImageFileName , std::strin
 
 void writeResultFile(Mat R , Mat T , std::string timestamp)
 {
-
-//    w = Math.sqrt(1.0 + m1.m00 + m1.m11 + m1.m22) / 2.0;
-//    double w4 = (4.0 * w);
-//    x = (m1.m21 - m1.m12) / w4 ;
-//    y = (m1.m02 - m1.m20) / w4 ;
-//    z = (m1.m10 - m1.m01) / w4 ;
     myfile << timestamp << " " ;
     for(int i = 0 ; i< T.rows ; i++)
-        myfile <<  round( T.at<double>(i,0) * 10000.0 ) / 10000.0  << ' ';
+        myfile <<  round( T.at<double>(i,0) * 10000.0 ) / 10000.0  <<  " ";
     double qw = sqrt(1.0 + R.at<double>(0,0) + R.at<double>(1,1) + R.at<double>(2,2)) / 2.0;
     double w4 = 4.0 * qw ;
     double qx = (R.at<double>(2,1) - R.at<double>(1,2)) / w4;
     double qy = (R.at<double>(0,2) - R.at<double>(2,0)) / w4;
     double qz = (R.at<double>(1,0) - R.at<double>(0,1)) / w4;
 
-    myfile << round( qx * 10000.0 ) / 10000.0 << ' ' <<
-              round( qy * 10000.0 ) / 10000.0 << ' ' <<
-              round( qz * 10000.0 ) / 10000.0 << ' ' <<
-              round( qw * 10000.0 ) / 10000.0 << '\n';
+    myfile << round( qx * 10000.0 ) / 10000.0 << " " <<
+              round( qy * 10000.0 ) / 10000.0 << " " <<
+              round( qz * 10000.0 ) / 10000.0 << " " <<
+              round( qw * 10000.0 ) / 10000.0 << "\n";
 }
+void GeneratePointCloud(FrameData currentFrameData)
+{
+    cv::Mat currentDepthImage = currentFrameData.getDepthMatrix();
 
+    pcl::PointCloud<pcl::PointXYZ>::Ptr cloud (new pcl::PointCloud<pcl::PointXYZ>);
+    cloud->width = currentDepthImage.cols;
+    cloud->height = currentDepthImage.rows;
+
+    cloud->points.resize (cloud->width * cloud->height);
+
+    float Z , factor = 5000;
+    int i = 0 ;
+    for(int rowInd = 0 ; rowInd < currentDepthImage.rows ; rowInd++)
+      for(int colInd = 0 ; colInd < currentDepthImage.cols ; colInd++)
+      {
+          Z = currentDepthImage.at<float>(rowInd , colInd) / factor;
+          cloud->points[i].x = ((colInd - cx) * Z )/fx;
+          cloud->points[i].y = ((rowInd - cy) * Z )/fy;
+          cloud->points[i].z = Z;
+          i++;
+      }
+}
 int main(int argc, char* argv[])
 {
     vector<int> compression_params;
     compression_params.push_back(CV_IMWRITE_PNG_COMPRESSION);
     compression_params.push_back(9);
     std::string folderName = "/media/muhammadaly/2DE6-372E/Thesis Work/RGB D Dataset/rgbd_dataset_freiburg1_desk2/";
-    std::string RGBfilename= folderName+"rgb/1305031102.175304.png";
-    std::string Depthfilename = folderName+ "depth/1305031102.160407.png";
+    std::string RGBfilename= folderName+"rgb/1305031526.671473.png";
+    std::string Depthfilename = folderName+ "depth/1305031526.688356.png";
     std::string detectionfilename = folderName+"rgb-Detection";
     std::string matchingfilename = folderName+"rgb-Matching/";
     std::string transformationMatrices = folderName+"transformationMatrices.txt";
@@ -168,18 +195,27 @@ int main(int argc, char* argv[])
             }
             vector<Point2f> currentImagePoints , previousImagePoints ;
             double focal = 517.3;
-            Point2f pp(0.0, 0.0);
+            Point2f pp(cx, cy);
+            float Z , factor = 5000,X,Y;
             for(int i = 0 ; i < matches.size() ; i++)
             {
-                Point2f point1 = currentImageKeypoints[matches[i].queryIdx].pt;
+                Point2f pointMatch1 = currentImageKeypoints[matches[i].queryIdx].pt;
+                Z = currentDepthImage.at<float>(pointMatch1.y , pointMatch1.x) / factor;
+                X = ((pointMatch1.x - cx)*Z)/fx;
+                Y = ((pointMatch1.y - cy)*Z)/fy;
+                Point2f point1((X),(Y));
                 currentImagePoints.push_back(point1);
-                Point2f point2 = previousImageKeypoints[matches[i].trainIdx].pt;
+                Point2f pointMatch2 = previousImageKeypoints[matches[i].trainIdx].pt;
+                Z = previousDepthImage.at<float>(pointMatch2.y , pointMatch2.x) / factor;
+                X = ((pointMatch2.x - cx)*Z)/fx;
+                Y = ((pointMatch2.y - cy)*Z)/fy;
+                Point2f point2((X),(Y));
                 previousImagePoints.push_back(point2);
             }
 
             Mat E , mask , R , T;
-            E = findEssentialMat(currentImagePoints , previousImagePoints , focal ,pp,RANSAC , 0.999,1,mask);
-            recoverPose(E, currentImagePoints, previousImagePoints, R, T, focal, pp, mask);
+            E = findEssentialMat(currentImagePoints , previousImagePoints , fx ,pp,RANSAC , 0.999,1,mask);
+            recoverPose(E, currentImagePoints, previousImagePoints, R, T, fx, pp, mask);
             writeResultFile(R , T , currentFrameData.getTimestamp() );
             //            Mat img_matches;
             //            drawMatches( currentImage, currentImageKeypoints, previousImage, previousImageKeypoints,

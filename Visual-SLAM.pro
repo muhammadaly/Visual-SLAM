@@ -25,8 +25,10 @@ QMAKE_CXXFLAGS += -std=c++0x
 
 INCLUDEPATH += /usr/local/include/opencv
 INCLUDEPATH += /usr/local/include/opencv2
+INCLUDEPATH += /usr/include/pcl-1.7
+INCLUDEPATH += /usr/include/eigen3
 
-LIBS += -L/usr/local/lib -lopencv_core -lopencv_highgui -lopencv_imgproc -lopencv_flann -lopencv_imgcodecs -lopencv_video -lopencv_xobjdetect -lopencv_videoio -lopencv_tracking -lopencv_features2d -lopencv_calib3d
+LIBS += -L/usr/local/lib -L/usr/lib -lopencv_core -lopencv_highgui -lopencv_imgproc -lopencv_flann -lopencv_imgcodecs -lopencv_video -lopencv_xobjdetect -lopencv_videoio -lopencv_tracking -lopencv_features2d -lopencv_calib3d
 
 HEADERS += \
     framedata.h
