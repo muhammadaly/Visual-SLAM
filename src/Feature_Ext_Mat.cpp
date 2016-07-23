@@ -25,14 +25,19 @@
 #include <pcl/registration/icp.h>
 #include <pcl/registration/sample_consensus_prerejective.h>
 #include <pcl/segmentation/sac_segmentation.h>
+#include <pcl/visualization/pcl_visualizer.h>
+
+
+#include <pcl/kdtree/impl/kdtree_flann.hpp>
 
 static const int ORBFeatureVectorLength = 35;
 
-typedef pcl::PointNormal PointNT;
+typedef pcl::PointXYZ PointNT;
 typedef pcl::PointCloud<PointNT> PointCloudT;
-typedef pcl::Histogram<ORBFeatureVectorLength> FeatureT;
+typedef pcl::Histogram<35> FeatureT;
 typedef pcl::FPFHEstimationOMP<PointNT,PointNT,FeatureT> FeatureEstimationT;
 typedef pcl::PointCloud<FeatureT> FeatureCloudT;
+typedef pcl::visualization::PointCloudColorHandlerCustom<PointNT> ColorHandlerT;
 
 static const float fx = 525.0;  // focal length x
 static const float fy = 525.0;  // focal length y
@@ -101,10 +106,10 @@ void matchTwoCVDescriptors(cv::Mat currentImageDescriptors , cv::Mat previousIma
         }
 
         std::cout << good_matches.size() << std::endl;
-        for(int i = 0 ; i < good_matches.size() ; i++)
-        {
-            std::cout << good_matches[i].trainIdx << " " << good_matches[i].queryIdx << std::endl;
-        }
+        //        for(int i = 0 ; i < good_matches.size() ; i++)
+        //        {
+        //            std::cout << good_matches[i].trainIdx << " " << good_matches[i].queryIdx << std::endl;
+        //        }
         //showMatchingImage(good_matches , currentImageKeypoints , previousImageKeypoints , currentFrame , previousFrame);
     }
 }
@@ -184,7 +189,7 @@ void EstimateTransformationBetweenTwoConsecutiveFrames(PointCloudT::Ptr pCurrent
     PointCloudT::Ptr object_aligned (new PointCloudT);
     const float leaf = 0.005f;
 
-    pcl::SampleConsensusPrerejective<PointNT,PointNT,FeatureT> align;
+    pcl::SampleConsensusPrerejective< PointNT,PointNT,FeatureT > align;
     align.setInputSource (pCurrentPointCloud);
     align.setSourceFeatures (pCurrentFeaturePointCloud);
     align.setInputTarget (pPreviousPointCloud);
@@ -199,7 +204,6 @@ void EstimateTransformationBetweenTwoConsecutiveFrames(PointCloudT::Ptr pCurrent
         pcl::ScopeTime t("Alignment");
         align.align (*object_aligned);
     }
-
     if (align.hasConverged ())
     {
         // Print results
@@ -213,9 +217,9 @@ void EstimateTransformationBetweenTwoConsecutiveFrames(PointCloudT::Ptr pCurrent
         //        pcl::console::print_info ("\n");
         //        pcl::console::print_info ("Inliers: %i/%i\n", align.getInliers ().size (), object->size ());
 
-        // Show alignment
+        //        // Show alignment
         //        pcl::visualization::PCLVisualizer visu("Alignment");
-        //        visu.addPointCloud (pPreviousPointCloud, ColorHandlerT (pPreviousPointCloud, 0.0, 255.0, 0.0), "pPreviousPointCloud");
+        //        visu.addPointCloud (scene, ColorHandlerT (scene, 0.0, 255.0, 0.0), "scene");
         //        visu.addPointCloud (object_aligned, ColorHandlerT (object_aligned, 0.0, 0.0, 255.0), "object_aligned");
         //        visu.spin ();
     }
@@ -223,7 +227,6 @@ void EstimateTransformationBetweenTwoConsecutiveFrames(PointCloudT::Ptr pCurrent
     {
         pcl::console::print_error ("Alignment failed!\n");
     }
-
 }
 
 void CorrespondenceRejectionUsingRANSAC()
@@ -231,6 +234,12 @@ void CorrespondenceRejectionUsingRANSAC()
 
 }
 
+void visualizePointCloud(PointCloudT::Ptr scene)
+{
+//    pcl::visualization::PCLVisualizer visu("Alignment");
+//    visu.addPointCloud (scene, ColorHandlerT (scene, 0.0, 255.0, 0.0), "scene");
+//    visu.spin ();
+}
 int main ()
 {
     cv::Ptr<cv::ORB> orb = cv::ORB::create();
@@ -257,8 +266,8 @@ int main ()
         //        << CVPreviousDescriptors.rows << " " << CVPreviousDescriptors.cols << std::endl;
         //        std::cout << PCLCurrentFeaturePointCloud->points.size() << " " << PCLPreviousFeaturePointCloud->points.size()<<std::endl;
 
-        //        cout << "Estimating :" << to_string(i-1) << "and" << to_string(i) <<endl;
-        //        EstimateTransformationBetweenTwoConsecutiveFrames(previousFrame, currentFrame);
+        std::cout << "Estimating :" ;//<< std::to_string(i-1) << "and" << std::to_string(i) <<endl;
+        EstimateTransformationBetweenTwoConsecutiveFrames(PCLCurrentPointCloud, PCLPreviousPointCloud , PCLCurrentFeaturePointCloud , PCLPreviousFeaturePointCloud);
     }
 
     return (0);
