@@ -5,12 +5,14 @@
 #include <visual_slam/framedata.h>
 #include <glob.h>
 
+#include "opencv2/core/core.hpp"
+#include "opencv2/features2d/features2d.hpp"
+#include "opencv2/highgui/highgui.hpp"
 #include <opencv2/opencv.hpp>
-#include <opencv2/core/core.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
-#include <opencv2/highgui/highgui.hpp>
-#include <opencv2/features2d.hpp>
-#include <opencv2/imgcodecs.hpp>
+#include "opencv2/core/core.hpp"
+#include "opencv2/calib3d/calib3d.hpp"
+//#include "opencv2/nonfree/nonfree.hpp"
 
 #include <Eigen/Core>
 #include <pcl/point_types.h>
@@ -25,38 +27,83 @@
 #include <pcl/registration/icp.h>
 #include <pcl/registration/sample_consensus_prerejective.h>
 #include <pcl/segmentation/sac_segmentation.h>
-#include <pcl/visualization/pcl_visualizer.h>
-
-
+//#include <pcl/visualization/pcl_visualizer.h>
+//#include <pcl/visualization/cloud_viewer.h>
+#include <pcl/common/projection_matrix.h>
+#include <pcl/kdtree/kdtree_flann.h>
+#include <pcl/kdtree/impl/kdtree_flann.hpp>
+#include <pcl/registration/registration.h>
+#include <pcl/registration/transformation_estimation_svd.h>
 #include <pcl/kdtree/impl/kdtree_flann.hpp>
 
-static const int ORBFeatureVectorLength = 35;
+static const int ORBFeatureVectorLength = 32;
 
 typedef pcl::PointXYZ PointNT;
 typedef pcl::PointCloud<PointNT> PointCloudT;
-typedef pcl::Histogram<35> FeatureT;
-typedef pcl::FPFHEstimationOMP<PointNT,PointNT,FeatureT> FeatureEstimationT;
+typedef pcl::Histogram<64> FeatureT;
+//typedef pcl::FPFHEstimationOMP<PointNT,PointNT,FeatureT> FeatureEstimationT;
 typedef pcl::PointCloud<FeatureT> FeatureCloudT;
-typedef pcl::visualization::PointCloudColorHandlerCustom<PointNT> ColorHandlerT;
+//typedef pcl::visualization::PointCloudColorHandlerCustom<FeatureT> ColorHandlerT;
 
 static const float fx = 525.0;  // focal length x
 static const float fy = 525.0;  // focal length y
 static const float cx = 319.5;  // optical center x
 static const float cy = 239.5;  // optical center y
 
-std::string rgbImages = "/home/muhammadaly/master dataset/rgbd_dataset_freiburg1_xyz/rgb";
-std::string depthImages = "/home/muhammadaly/master dataset/rgbd_dataset_freiburg1_xyz/depth";
-std::string transformationMatrices = "/home/muhammadaly/Projects/TrajectoryEstimationForPCLAndOpenCV/Results/UsingPCL/transformationMatrices.txt";
-std::string featureMatching = "/home/muhammadaly/master dataset/rgbd_dataset_freiburg1_xyz/matching";
+std::string rgbImages = "/home/ivsystems/master dataset/rgbd_dataset_freiburg1_xyz/rgb";
+std::string depthImages = "/home/ivsystems/master dataset/rgbd_dataset_freiburg1_xyz/depth";
+std::string transformationMatrices = "/home/ivsystems/master dataset/Results/UsingPCL/transformationMatrices.txt";
+std::string featureMatching = "/home/ivsystems/master dataset/rgbd_dataset_freiburg1_xyz/matching";
 
 std::ofstream myfile;
 
+void showImage(cv::Mat img)
+{
+    cv::namedWindow( "Display window", cv::WINDOW_AUTOSIZE );// Create a window for display.
+    cv::imshow( "Display window", img );                   // Show our image inside it.
+
+    cv::waitKey(0);
+}
+void showDescriptor(cv::Mat pDescriptors)
+{
+    int descriptorInd = 0;
+    for(int Ind = 0 ; Ind < pDescriptors.cols ; Ind++)
+    {
+        printf("%f ," , pDescriptors.at<float>(descriptorInd,Ind));
+    }
+    printf("\n");
+}
 void computeFeatreORBFeatureDescriptor(FrameData pFrameData , std::vector<cv::KeyPoint>& tkeypoint ,cv::Mat& tdescriptors , cv::Ptr<cv::ORB> orb)
 {
     cv::Mat img;
 
     img = pFrameData.getFrameMatrix();
     orb->detectAndCompute(img, cv::noArray(),tkeypoint, tdescriptors);
+}
+
+void computeFeatreSURFFeatureDescriptor(FrameData pFrameData , std::vector<cv::KeyPoint>& tkeypoint ,cv::Mat& tdescriptors)
+{
+    //    cv::Mat img;
+
+    //    img = pFrameData.getFrameMatrix();
+    //    int minHessian = 400;
+
+    //    cv::SurfFeatureDetector detector( minHessian );
+
+    //    detector.detect( img, tkeypoint );
+
+    //    SurfDescriptorExtractor extractor;
+    //    extractor.compute( img, tkeypoint, tdescriptors );
+}
+
+void computeFeatreBRISKFeatureDescriptor(FrameData pFrameData , std::vector<cv::KeyPoint>& tkeypoint ,cv::Mat& tdescriptors)
+{
+    cv::Ptr<cv::BRISK> brisk = cv::BRISK::create();
+    cv::Mat img;
+
+    img = pFrameData.getFrameMatrix();
+    brisk->detectAndCompute(img, cv::noArray(),tkeypoint, tdescriptors);
+
 }
 
 void showMatchingImage(std::vector<cv::DMatch> good_matches
@@ -105,24 +152,47 @@ void matchTwoCVDescriptors(cv::Mat currentImageDescriptors , cv::Mat previousIma
             if (matches[i].distance < 10 * min_dist) { good_matches.push_back(matches[i]); }
         }
 
-        std::cout << good_matches.size() << std::endl;
-        //        for(int i = 0 ; i < good_matches.size() ; i++)
-        //        {
-        //            std::cout << good_matches[i].trainIdx << " " << good_matches[i].queryIdx << std::endl;
-        //        }
-        //showMatchingImage(good_matches , currentImageKeypoints , previousImageKeypoints , currentFrame , previousFrame);
+        std::cout << matches.size() << std::endl;
     }
+}
+void matchTwoPCLDescriptors(FeatureCloudT::Ptr model_descriptors , FeatureCloudT::Ptr scene_descriptors)
+{
+    pcl::CorrespondencesPtr model_scene_corrs (new pcl::Correspondences ());
+
+    pcl::KdTreeFLANN<FeatureT> match_search;
+    match_search.setInputCloud (model_descriptors);
+    //    int l = (int) scene_descriptors->size ();
+    //    printf("%i," , l);
+    //  For each scene keypoint descriptor, find nearest neighbor into the model keypoints descriptor cloud and add it to the correspondences vector.
+    for (int i = 0; i < scene_descriptors->size (); ++i)
+    {
+        std::vector<int> neigh_indices (1);
+        std::vector<float> neigh_sqr_dists (1);
+
+        if (!pcl_isfinite (scene_descriptors->at(i).histogram[0])) //skipping NaNs
+        {
+            continue;
+        }
+        int found_neighs = match_search.nearestKSearch (scene_descriptors->at(i), 1, neigh_indices, neigh_sqr_dists);
+        if(found_neighs == 1 && neigh_sqr_dists[0] < 0.25f) //  add match only if the squared descriptor distance is less than 0.25 (SHOT descriptor distances are between 0 and 1 by design)
+        {
+            pcl::Correspondence corr (neigh_indices[0], static_cast<int> (i), neigh_sqr_dists[0]);
+            model_scene_corrs->push_back (corr);
+        }
+    }
+    std::cout << "Correspondences found: " << model_scene_corrs->size () << std::endl;
+
 }
 FeatureCloudT::Ptr createFeaturePointCloud( cv::Mat pDescriptors)
 {
     FeatureCloudT::Ptr FeaturePointCloud ( new FeatureCloudT);
-
+    //    printf("rows : %i , cols : %i\n" , pDescriptors.rows , pDescriptors.cols);
     for(int KeyPointsInd = 0 ; KeyPointsInd < pDescriptors.rows ; KeyPointsInd++)
     {
         FeatureT PCLDescriptor;
         for(int ind = 0 ; ind < pDescriptors.cols; ind++)
         {
-            PCLDescriptor.histogram[ind] = pDescriptors.at<float>(KeyPointsInd,ind);
+            PCLDescriptor.histogram[ind] = pDescriptors.at<unsigned char>(KeyPointsInd,ind);
         }
         FeaturePointCloud->points.push_back(PCLDescriptor);
     }
@@ -228,21 +298,32 @@ void EstimateTransformationBetweenTwoConsecutiveFrames(PointCloudT::Ptr pCurrent
         pcl::console::print_error ("Alignment failed!\n");
     }
 }
+void EstimateTransformationBetweenTwoConsecutiveFramesSVD(PointCloudT::Ptr pCurrentPointCloud , PointCloudT::Ptr pPreviousPointCloud,
+                                                       FeatureCloudT::Ptr pCurrentFeaturePointCloud , FeatureCloudT::Ptr pPreviousFeaturePointCloud ,  pcl::Correspondences &correspondences)
+{
+//    PointCloudT::Ptr object_aligned (new PointCloudT);
+//    const float leaf = 0.005f;
+
+//    pcl::registration::TransformationEstimationSVD<FeatureT,FeatureT> align;
+//    Eigen::Matrix4f &transformation_matrix;
+//    align.estimateRigidTransformation (pCurrentFeaturePointCloud, pPreviousFeaturePointCloud, correspondences , transformation_matrix);
+
+}
 
 void CorrespondenceRejectionUsingRANSAC()
 {
 
 }
 
-void visualizePointCloud(PointCloudT::Ptr scene)
+void visualizePointCloud(FeatureCloudT::Ptr scene)
 {
-//    pcl::visualization::PCLVisualizer visu("Alignment");
-//    visu.addPointCloud (scene, ColorHandlerT (scene, 0.0, 255.0, 0.0), "scene");
-//    visu.spin ();
+    //    pcl::visualization::PCLVisualizer visu("Alignment");
+    //    visu.addPointCloud (scene, ColorHandlerT (scene, 0.0, 255.0, 0.0), "scene");
+    //    visu.spin ();
 }
 int main ()
 {
-    cv::Ptr<cv::ORB> orb = cv::ORB::create();
+    //    cv::Ptr<cv::ORB> orb = cv::ORB::create();
     std::vector<FrameData> Frames = readFolderOfImages(rgbImages,depthImages);
     for(int i = 10 ; i < 11 ; i ++)
     {
@@ -251,8 +332,9 @@ int main ()
         std::vector<cv::KeyPoint> CVCurrentKeypoints ,CVPreviousKeypoints ;
         cv::Mat CVCurrentDescriptors, CVPreviousDescriptors;
 
-        computeFeatreORBFeatureDescriptor(previousFrame ,CVPreviousKeypoints , CVPreviousDescriptors , orb );
-        computeFeatreORBFeatureDescriptor(currentFrame ,CVCurrentKeypoints , CVCurrentDescriptors , orb );
+        computeFeatreBRISKFeatureDescriptor(previousFrame ,CVPreviousKeypoints , CVPreviousDescriptors );
+        computeFeatreBRISKFeatureDescriptor(currentFrame ,CVCurrentKeypoints , CVCurrentDescriptors );
+        //showDescriptor(CVCurrentDescriptors);
 
         matchTwoCVDescriptors(CVCurrentDescriptors , CVPreviousDescriptors , CVCurrentKeypoints, CVPreviousKeypoints, currentFrame , previousFrame);
 
@@ -261,12 +343,14 @@ int main ()
         PointCloudT::Ptr PCLCurrentPointCloud = GeneratePointCloud(currentFrame.getFrameMatrix());
         PointCloudT::Ptr PCLPreviousPointCloud = GeneratePointCloud(previousFrame.getFrameMatrix());
 
+        //        visualizePointCloud(PCLCurrentFeaturePointCloud);
+//        matchTwoPCLDescriptors(PCLCurrentFeaturePointCloud , PCLPreviousFeaturePointCloud);
         //        std::cout << CVCurrentKeypoints.size() << " " << CVPreviousKeypoints.size() << std::endl;
         //        std::cout << CVCurrentDescriptors.rows << " " << CVCurrentDescriptors.cols << " "
         //        << CVPreviousDescriptors.rows << " " << CVPreviousDescriptors.cols << std::endl;
         //        std::cout << PCLCurrentFeaturePointCloud->points.size() << " " << PCLPreviousFeaturePointCloud->points.size()<<std::endl;
 
-        std::cout << "Estimating :" ;//<< std::to_string(i-1) << "and" << std::to_string(i) <<endl;
+        //std::cout << "Estimating :" ;//<< std::to_string(i-1) << "and" << std::to_string(i) <<endl;
         EstimateTransformationBetweenTwoConsecutiveFrames(PCLCurrentPointCloud, PCLPreviousPointCloud , PCLCurrentFeaturePointCloud , PCLPreviousFeaturePointCloud);
     }
 
