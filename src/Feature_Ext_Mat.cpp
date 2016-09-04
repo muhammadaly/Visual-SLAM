@@ -121,12 +121,14 @@ void showMatchingImage(std::vector<cv::DMatch> good_matches
     cv::waitKey(0);
 }
 
-void matchTwoCVDescriptors(cv::Mat currentImageDescriptors , cv::Mat previousImageDescriptors
+std::vector<cv::DMatch> matchTwoCVDescriptors(cv::Mat currentImageDescriptors , cv::Mat previousImageDescriptors
                            , std::vector<cv::KeyPoint> currentImageKeypoints , std::vector<cv::KeyPoint> previousImageKeypoints
                            , FrameData currentFrame, FrameData previousFrame)
 {
     cv::FlannBasedMatcher matcher;
     std::vector<cv::DMatch> matches;
+
+    std::vector<cv::DMatch> good_matches;
 
     if (!currentImageDescriptors.empty() && !previousImageDescriptors.empty()) {
         if (currentImageDescriptors.type() != CV_32F) {
@@ -137,6 +139,7 @@ void matchTwoCVDescriptors(cv::Mat currentImageDescriptors , cv::Mat previousIma
         }
         matcher.match(currentImageDescriptors, previousImageDescriptors, matches);
 
+        printf("Keypoints size : %i\n , Descriptor size : %i , %i \n" , currentImageKeypoints.size() , currentImageDescriptors.rows , currentImageDescriptors.cols);
         double max_dist = 0;
         double min_dist = 100;
 
@@ -146,14 +149,13 @@ void matchTwoCVDescriptors(cv::Mat currentImageDescriptors , cv::Mat previousIma
             if (dist > max_dist) max_dist = dist;
         }
 
-        std::vector<cv::DMatch> good_matches;
-
         for (int i = 0; i < matches.size(); i++) {
             if (matches[i].distance < 10 * min_dist) { good_matches.push_back(matches[i]); }
         }
 
         std::cout << matches.size() << std::endl;
     }
+    return good_matches;
 }
 void matchTwoPCLDescriptors(FeatureCloudT::Ptr model_descriptors , FeatureCloudT::Ptr scene_descriptors)
 {
@@ -252,6 +254,33 @@ PointCloudT::Ptr GeneratePointCloud(cv::Mat pImage)
     return cloud;
 }
 
+PointCloudT::Ptr GeneratePointCloud(cv::Mat pPreviousImage , cv::Mat pCurrentImage , std::vector<cv::DMatch> matches)
+{
+    PointCloudT::Ptr cloud (new PointCloudT);
+    cloud->width = pImage.cols;
+    cloud->height = pImage.rows;
+
+    cloud->points.resize (cloud->width * cloud->height);
+
+    float Z , factor = 5000;
+    int i = 0 ;
+
+    for(int i = 0 ; i < matches.size() ; i++)
+    {
+
+    }
+    for(int rowInd = 0 ; rowInd < pImage.rows ; rowInd++)
+        for(int colInd = 0 ; colInd < pImage.cols ; colInd++)
+        {
+            Z = pImage.at<float>(rowInd , colInd) / factor;
+            cloud->points[i].x = ((colInd - cx) * Z )/fx;
+            cloud->points[i].y = ((rowInd - cy) * Z )/fy;
+            cloud->points[i].z = Z;
+            i++;
+        }
+    return cloud;
+}
+
 
 void EstimateTransformationBetweenTwoConsecutiveFrames(PointCloudT::Ptr pCurrentPointCloud , PointCloudT::Ptr pPreviousPointCloud,
                                                        FeatureCloudT::Ptr pCurrentFeaturePointCloud , FeatureCloudT::Ptr pPreviousFeaturePointCloud)
@@ -338,10 +367,10 @@ int main ()
 
         matchTwoCVDescriptors(CVCurrentDescriptors , CVPreviousDescriptors , CVCurrentKeypoints, CVPreviousKeypoints, currentFrame , previousFrame);
 
-        FeatureCloudT::Ptr PCLCurrentFeaturePointCloud = createFeaturePointCloud(CVCurrentDescriptors);
-        FeatureCloudT::Ptr PCLPreviousFeaturePointCloud = createFeaturePointCloud(CVPreviousDescriptors);
-        PointCloudT::Ptr PCLCurrentPointCloud = GeneratePointCloud(currentFrame.getFrameMatrix());
-        PointCloudT::Ptr PCLPreviousPointCloud = GeneratePointCloud(previousFrame.getFrameMatrix());
+//        FeatureCloudT::Ptr PCLCurrentFeaturePointCloud = createFeaturePointCloud(CVCurrentDescriptors);
+//        FeatureCloudT::Ptr PCLPreviousFeaturePointCloud = createFeaturePointCloud(CVPreviousDescriptors);
+//        PointCloudT::Ptr PCLCurrentPointCloud = GeneratePointCloud(currentFrame.getFrameMatrix());
+//        PointCloudT::Ptr PCLPreviousPointCloud = GeneratePointCloud(previousFrame.getFrameMatrix());
 
         //        visualizePointCloud(PCLCurrentFeaturePointCloud);
 //        matchTwoPCLDescriptors(PCLCurrentFeaturePointCloud , PCLPreviousFeaturePointCloud);
@@ -351,7 +380,7 @@ int main ()
         //        std::cout << PCLCurrentFeaturePointCloud->points.size() << " " << PCLPreviousFeaturePointCloud->points.size()<<std::endl;
 
         //std::cout << "Estimating :" ;//<< std::to_string(i-1) << "and" << std::to_string(i) <<endl;
-        EstimateTransformationBetweenTwoConsecutiveFrames(PCLCurrentPointCloud, PCLPreviousPointCloud , PCLCurrentFeaturePointCloud , PCLPreviousFeaturePointCloud);
+//        EstimateTransformationBetweenTwoConsecutiveFrames(PCLCurrentPointCloud, PCLPreviousPointCloud , PCLCurrentFeaturePointCloud , PCLPreviousFeaturePointCloud);
     }
 
     return (0);
