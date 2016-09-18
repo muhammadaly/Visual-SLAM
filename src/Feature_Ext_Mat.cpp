@@ -139,7 +139,7 @@ std::vector<cv::DMatch> matchTwoCVDescriptors(cv::Mat currentImageDescriptors , 
         }
         matcher.match(currentImageDescriptors, previousImageDescriptors, matches);
 
-        printf("Keypoints size : %i\n , Descriptor size : %i , %i \n" , currentImageKeypoints.size() , currentImageDescriptors.rows , currentImageDescriptors.cols);
+//        printf("Keypoints size : %i\n , Descriptor size : %i , %i \n" , currentImageKeypoints.size() , currentImageDescriptors.rows , currentImageDescriptors.cols);
         double max_dist = 0;
         double min_dist = 100;
 
@@ -254,32 +254,32 @@ PointCloudT::Ptr GeneratePointCloud(cv::Mat pImage)
     return cloud;
 }
 
-PointCloudT::Ptr GeneratePointCloud(cv::Mat pPreviousImage , cv::Mat pCurrentImage , std::vector<cv::DMatch> matches)
-{
-    PointCloudT::Ptr cloud (new PointCloudT);
-    cloud->width = pImage.cols;
-    cloud->height = pImage.rows;
+//PointCloudT::Ptr GeneratePointCloud(cv::Mat pPreviousImage , cv::Mat pCurrentImage , std::vector<cv::DMatch> matches)
+//{
+//    PointCloudT::Ptr cloud (new PointCloudT);
+//    cloud->width = pImage.cols;
+//    cloud->height = pImage.rows;
 
-    cloud->points.resize (cloud->width * cloud->height);
+//    cloud->points.resize (cloud->width * cloud->height);
 
-    float Z , factor = 5000;
-    int i = 0 ;
+//    float Z , factor = 5000;
+//    int i = 0 ;
 
-    for(int i = 0 ; i < matches.size() ; i++)
-    {
+//    for(int i = 0 ; i < matches.size() ; i++)
+//    {
 
-    }
-    for(int rowInd = 0 ; rowInd < pImage.rows ; rowInd++)
-        for(int colInd = 0 ; colInd < pImage.cols ; colInd++)
-        {
-            Z = pImage.at<float>(rowInd , colInd) / factor;
-            cloud->points[i].x = ((colInd - cx) * Z )/fx;
-            cloud->points[i].y = ((rowInd - cy) * Z )/fy;
-            cloud->points[i].z = Z;
-            i++;
-        }
-    return cloud;
-}
+//    }
+//    for(int rowInd = 0 ; rowInd < pImage.rows ; rowInd++)
+//        for(int colInd = 0 ; colInd < pImage.cols ; colInd++)
+//        {
+//            Z = pImage.at<float>(rowInd , colInd) / factor;
+//            cloud->points[i].x = ((colInd - cx) * Z )/fx;
+//            cloud->points[i].y = ((rowInd - cy) * Z )/fy;
+//            cloud->points[i].z = Z;
+//            i++;
+//        }
+//    return cloud;
+//}
 
 
 void EstimateTransformationBetweenTwoConsecutiveFrames(PointCloudT::Ptr pCurrentPointCloud , PointCloudT::Ptr pPreviousPointCloud,
