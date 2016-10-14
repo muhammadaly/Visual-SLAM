@@ -57,9 +57,16 @@ add_definitions(${PCL_DEFINITIONS})
 #target_link_libraries(alignment_prerejective ${catkin_LIBRARIES} ${Boost_LIBRARIES}
 #        ${PCL_LIBS})
 #-----------------------------------------------------------------------------------------------
+add_executable (Transformation_Estimation_RANSAC
+        src/Transformation_Estimation_RANSAC.cpp
+        src/framedata.cpp
+        include/visual_slam/framedata.h )
+target_link_libraries(Transformation_Estimation_RANSAC ${catkin_LIBRARIES} ${OpenCV_LIBS} ${PCL_LIBRARIES})
+
 add_executable (Feature_Ext_Mat
         src/Feature_Ext_Mat.cpp
         src/framedata.cpp
         include/visual_slam/framedata.h )
+
 target_link_libraries(Feature_Ext_Mat ${catkin_LIBRARIES} ${OpenCV_LIBS} ${PCL_LIBRARIES})
 
