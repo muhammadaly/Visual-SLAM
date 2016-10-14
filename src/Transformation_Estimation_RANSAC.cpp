@@ -388,15 +388,14 @@ pcl::CorrespondencesPtr generatePCLcorrespondance(std::vector< cv::DMatch > CVma
     return generatedCorrespondences;
 }
 void EstimateTransformationBetweenTwoConsecutiveFramesSVD(PointCloudT::Ptr pCurrentPointCloud
-                                                          , PointCloudT::Ptr pPreviousPointCloud, pcl::Correspondences correspondences
-                                                          , std::string currentTimeStamp)
+                                                          , PointCloudT::Ptr pPreviousPointCloud, pcl::Correspondences correspondences)
 {
-    //PointCloudT::Ptr object_aligned (new PointCloudT);
-    //const float leaf = 0.005f;
+        //PointCloudT::Ptr object_aligned (new PointCloudT);
+        //const float leaf = 0.005f;
 
-    pcl::registration::TransformationEstimationSVD<PointNT,PointNT,float> align;
-    pcl::registration::TransformationEstimationSVD<PointNT,PointNT,float>::Matrix4  transformation_matrix;
-    align.estimateRigidTransformation (*pCurrentPointCloud, *pPreviousPointCloud, correspondences , transformation_matrix);
+        pcl::registration::TransformationEstimationSVD<PointNT,PointNT,float> align;
+        pcl::registration::TransformationEstimationSVD<PointNT,PointNT,float>::Matrix4  transformation_matrix;
+        align.estimateRigidTransformation (*pCurrentPointCloud, *pPreviousPointCloud, correspondences , transformation_matrix);
 
         std::cout << "The Estimated Rotation and translation matrices (using getTransformation function) are : \n" << std::endl;
         printf ("\n");
@@ -405,7 +404,7 @@ void EstimateTransformationBetweenTwoConsecutiveFramesSVD(PointCloudT::Ptr pCurr
         printf ("    | %6.3f %6.3f %6.3f | \n", transformation_matrix (2,0), transformation_matrix (2,1), transformation_matrix (2,2));
         printf ("\n");
         printf ("t = < %0.3f, %0.3f, %0.3f >\n", transformation_matrix (0,3), transformation_matrix (1,3),transformation_matrix (2,3));
-    //writeResultFile(transformation_matrix,currentTimeStamp);
+
 
 }
 
@@ -442,7 +441,7 @@ void generateSelectedPointCloud(std::vector<cv::DMatch> matches , std::vector<cv
     currentSelectedPointCloud->points.resize (currentSelectedPointCloud->width * currentSelectedPointCloud->height);
     int rowInd , colInd;
     cv::KeyPoint currentKeypoint , previousKeypoint;
-    for(size_t ind = 1 ;ind < matches.size() ; ind++)
+    for(size_t ind = 0 ;ind < matches.size() ; ind++)
     {
         currentKeypoint = currentKeypoints[matches[ind].queryIdx];
         previousKeypoint = previousKeypoints[matches[ind].trainIdx];
@@ -469,8 +468,7 @@ int main ()
 {
     //    cv::Ptr<cv::ORB> orb = cv::ORB::create();
     std::vector<FrameData> Frames = readFolderOfImages(rgbImages,depthImages);
-//    for(int i = 1 ; i < Frames.size() ; i ++)
-    for(int i = 110 ; i < 111 ; i ++)
+    for(int i = 200 ; i < 201 ; i ++)
     {
         printf("Hello\n");
         FrameData previousFrame = Frames[i-1];
@@ -480,7 +478,6 @@ int main ()
 
         computeFeatreBRISKFeatureDescriptor(previousFrame ,CVPreviousKeypoints , CVPreviousDescriptors );
         computeFeatreBRISKFeatureDescriptor(currentFrame ,CVCurrentKeypoints , CVCurrentDescriptors );
-        printf("Hi");
         //showDescriptor(CVCurrentDescriptors);
 
         std::vector<cv::DMatch> good_matches = matchTwoCVDescriptors(CVCurrentDescriptors , CVPreviousDescriptors , CVCurrentKeypoints, CVPreviousKeypoints, currentFrame , previousFrame);
@@ -494,8 +491,8 @@ int main ()
         printf("%i , %i , %i , %i , %i\n" , cpsize , ppsize , match ,fcc , fcp );
         pcl::CorrespondencesPtr corr = generatePCLcorrespondance(good_matches);
         std::cout << "Correspondences found: " << corr->size () << std::endl;
-        PointCloudT::Ptr PCLCurrentPointCloud = GeneratePointCloud(currentFrame.getFrameMatrix());
-        PointCloudT::Ptr PCLPreviousPointCloud = GeneratePointCloud(previousFrame.getFrameMatrix());
+                PointCloudT::Ptr PCLCurrentPointCloud = GeneratePointCloud(currentFrame.getFrameMatrix());
+                PointCloudT::Ptr PCLPreviousPointCloud = GeneratePointCloud(previousFrame.getFrameMatrix());
 
         //        visualizePointCloud(PCLCurrentFeaturePointCloud);
         //        matchTwoPCLDescriptors(PCLCurrentFeaturePointCloud , PCLPreviousFeaturePointCloud);
@@ -506,8 +503,7 @@ int main ()
 
         //std::cout << "Estimating :" ;//<< std::to_string(i-1) << "and" << std::to_string(i) <<endl;
         //EstimateTransformationBetweenTwoConsecutiveFrames(CurrentSelectedPointCloud, PreviousSelectedPointCloud , PCLCurrentFeaturePointCloud , PCLPreviousFeaturePointCloud);
-        std::string currentTimeStamp = previousFrame.getTimestamp();
-        EstimateTransformationBetweenTwoConsecutiveFramesSVD(PCLCurrentPointCloud ,PCLPreviousPointCloud ,*corr,currentTimeStamp);
+        EstimateTransformationBetweenTwoConsecutiveFramesSVD(PCLCurrentPointCloud ,PCLPreviousPointCloud ,*corr);
     }
 
     return (0);
