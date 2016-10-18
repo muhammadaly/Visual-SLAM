@@ -95,10 +95,11 @@ void writeResultFile(Eigen::Matrix4f transformation , std::string timestamp)
 }
 
 
-void visualizePointCloud(PointCloudT::Ptr scene)
+void visualizePointCloud(PointCloudT::Ptr scene, PointCloudT::Ptr object)
 {
     pcl::visualization::PCLVisualizer visu("Point Cloud Visualizer");
-    visu.addPointCloud(scene,ColorHandlerT(scene, 255.0, 255.0, 255.0), "scene");
+    visu.addPointCloud(scene,ColorHandlerT(scene, 0.0, 255.0, 0.0), "scene");
+    visu.addPointCloud(object,ColorHandlerT(object, 0.0, 0.0, 255.0), "object");
     visu.spin();
 }
 
@@ -318,7 +319,7 @@ PointCloudT::Ptr GeneratePointCloud(cv::Mat pImage)
 
             cloud->points.push_back(p);
         }
-    visualizePointCloud(cloud);
+    //visualizePointCloud(cloud);
     return cloud;
 }
 
@@ -351,11 +352,6 @@ void EstimateTransformationBetweenTwoConsecutiveFramesSVD(PointCloudT::Ptr pCurr
     printf ("\n");
     printf ("t = < %0.3f, %0.3f, %0.3f >\n", transformation_matrix (0,3), transformation_matrix (1,3),transformation_matrix (2,3));
     //writeResultFile(transformation_matrix,currentTimeStamp);
-
-}
-
-void CorrespondenceRejectionUsingRANSAC()
-{
 
 }
 
@@ -412,7 +408,7 @@ void generateSelectedPointCloud(std::vector<cv::DMatch> matches , std::vector<cv
         currentSelectedPointCloud->points.push_back(p2);
 
     }
-    visualizePointCloud(previousSelectedPointCloud);
+    visualizePointCloud(previousSelectedPointCloud , currentSelectedPointCloud);
 }
 
 
@@ -451,7 +447,7 @@ int main ()
         PointCloudT::Ptr CurrentSelectedPointCloud (new PointCloudT), PreviousSelectedPointCloud (new PointCloudT);
         generateSelectedPointCloud(good_matches,CVPreviousKeypoints,CVCurrentKeypoints,previousFrame , currentFrame
                                    ,PreviousSelectedPointCloud ,CurrentSelectedPointCloud);
-        OutliersRejection(CurrentSelectedPointCloud, PreviousSelectedPointCloud);
+//        OutliersRejection(CurrentSelectedPointCloud, PreviousSelectedPointCloud);
 
     }
 
