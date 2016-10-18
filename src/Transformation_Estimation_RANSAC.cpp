@@ -35,8 +35,10 @@
 #include <pcl/registration/registration.h>
 #include <pcl/registration/transformation_estimation_svd.h>
 #include <pcl/registration/correspondence_rejection_sample_consensus.h>
+#include <pcl/sample_consensus/sac_model_registration.h>
 #include <pcl/kdtree/impl/kdtree_flann.hpp>
 #include <pcl/visualization/pcl_visualizer.h>
+#include <pcl/registration/icp.h>
 
 static const int ORBFeatureVectorLength = 32;
 static const int BRISKFeatureVectorLength = 64;
@@ -53,10 +55,10 @@ float fy = 525.0;  // focal length y
 float cx = 319.5;  // optical center x
 float cy = 239.5;  // optical center y
 
-std::string rgbImages = "/home/ivsystems/master dataset/rgbd_dataset_freiburg1_xyz/rgb";
-std::string depthImages = "/home/ivsystems/master dataset/rgbd_dataset_freiburg1_xyz/depth";
-std::string transformationMatrices = "/home/ivsystems/master dataset/Results/UsingPCL/transformationMatrices.txt";
-std::string featureMatching = "/home/ivsystems/master dataset/rgbd_dataset_freiburg1_xyz/matching";
+std::string rgbImages = "/home/muhammadaly/master dataset/rgbd_dataset_freiburg1_xyz/rgb";
+std::string depthImages = "/home/muhammadaly/master dataset/rgbd_dataset_freiburg1_xyz/depth";
+std::string transformationMatrices = "/home/muhammadaly/master dataset/Results/UsingPCL/transformationMatrices.txt";
+std::string featureMatching = "/home/muhammadaly/master dataset/rgbd_dataset_freiburg1_xyz/matching";
 
 std::ofstream myfile;
 
@@ -100,6 +102,12 @@ void visualizePointCloud(PointCloudT::Ptr scene, PointCloudT::Ptr object)
     pcl::visualization::PCLVisualizer visu("Point Cloud Visualizer");
     visu.addPointCloud(scene,ColorHandlerT(scene, 0.0, 255.0, 0.0), "scene");
     visu.addPointCloud(object,ColorHandlerT(object, 0.0, 0.0, 255.0), "object");
+    visu.spin();
+}
+void visualizePointCloud(PointCloudT::Ptr scene)
+{
+    pcl::visualization::PCLVisualizer visu("Point Cloud Visualizer");
+    visu.addPointCloud(scene,ColorHandlerT(scene, 0.0, 255.0, 0.0), "scene");
     visu.spin();
 }
 
@@ -319,7 +327,7 @@ PointCloudT::Ptr GeneratePointCloud(cv::Mat pImage)
 
             cloud->points.push_back(p);
         }
-    //visualizePointCloud(cloud);
+    visualizePointCloud(cloud);
     return cloud;
 }
 
@@ -355,6 +363,29 @@ void EstimateTransformationBetweenTwoConsecutiveFramesSVD(PointCloudT::Ptr pCurr
 
 }
 
+void EstimateTransformationBetweenTwoConsecutiveFrames(PointCloudT::Ptr pCurrentPointCloud
+                                                       , PointCloudT::Ptr pPreviousPointCloud)
+{
+    PointCloudT::Ptr cloud_source_registered(new PointCloudT);
+    pcl::IterativeClosestPoint<PointT, PointT>::Ptr align ( new pcl::IterativeClosestPoint<PointT, PointT>);
+    align->setInputCloud(pCurrentPointCloud);
+    align->setInputTarget(pPreviousPointCloud);
+    align->setMaxCorrespondenceDistance (0.05);
+    align->setMaximumIterations (50);
+    align->setTransformationEpsilon (1e-8);
+    align->setEuclideanFitnessEpsilon (1);
+    align->align(*cloud_source_registered);
+
+    Eigen::Matrix4f transformation_matrix = align->getFinalTransformation ();
+    std::cout << "The Estimated Rotation and translation matrices (using getTransformation function) are : \n" << std::endl;
+    printf ("\n");
+    printf ("    | %6.3f %6.3f %6.3f | \n", transformation_matrix (0,0), transformation_matrix (0,1), transformation_matrix (0,2));
+    printf ("R = | %6.3f %6.3f %6.3f | \n", transformation_matrix (1,0), transformation_matrix (1,1), transformation_matrix (1,2));
+    printf ("    | %6.3f %6.3f %6.3f | \n", transformation_matrix (2,0), transformation_matrix (2,1), transformation_matrix (2,2));
+    printf ("\n");
+    printf ("t = < %0.3f, %0.3f, %0.3f >\n", transformation_matrix (0,3), transformation_matrix (1,3),transformation_matrix (2,3));
+
+}
 void showImageData(cv::Mat image)
 {
     float d;
@@ -408,7 +439,7 @@ void generateSelectedPointCloud(std::vector<cv::DMatch> matches , std::vector<cv
         currentSelectedPointCloud->points.push_back(p2);
 
     }
-    visualizePointCloud(previousSelectedPointCloud , currentSelectedPointCloud);
+    //        visualizePointCloud(previousSelectedPointCloud , currentSelectedPointCloud);
 }
 
 
@@ -419,6 +450,7 @@ void OutliersRejection(PointCloudT::Ptr pCurrentPointCloud, PointCloudT::Ptr pPr
     RANSAC->setInputSource(pPreviousPointCloud);
     RANSAC->setInputTarget(pCurrentPointCloud);
     RANSAC->setMaximumIterations(5000);
+    RANSAC->setInlierThreshold(0.05);
     RANSAC->getInliersIndices(IdxInliers);
     printf("IdxInliers size %i\n", ((int)IdxInliers.size()));
 }
@@ -433,8 +465,8 @@ int main ()
     {
         FrameData previousFrame = Frames[i-1];
         FrameData currentFrame = Frames[i];
-        cv::Mat previousDepth = previousFrame.getDepthMatrix();
-        //        GeneratePointCloud(previousDepth);
+        //                cv::Mat previousDepth = previousFrame.getDepthMatrix();
+        //                GeneratePointCloud(previousDepth);
         std::vector<cv::KeyPoint> CVCurrentKeypoints ,CVPreviousKeypoints ;
         cv::Mat CVCurrentDescriptors, CVPreviousDescriptors , goodCVCurrentDescriptors, goodCVPreviousDescriptors;
 
@@ -448,6 +480,7 @@ int main ()
         generateSelectedPointCloud(good_matches,CVPreviousKeypoints,CVCurrentKeypoints,previousFrame , currentFrame
                                    ,PreviousSelectedPointCloud ,CurrentSelectedPointCloud);
 //        OutliersRejection(CurrentSelectedPointCloud, PreviousSelectedPointCloud);
+        EstimateTransformationBetweenTwoConsecutiveFrames(CurrentSelectedPointCloud,PreviousSelectedPointCloud);
 
     }
 

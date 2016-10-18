@@ -20,7 +20,6 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
   genmsg
   laser_geometry
-  dynamixel_msgs
 )
 
 find_package( PNG REQUIRED )
@@ -28,7 +27,7 @@ find_package(Boost)
 find_package(PCL 1.7 REQUIRED REQUIRED COMPONENTS filters io registration segmentation visualization)
 #find_package( OpenCV REQUIRED )
 
-find_package( CUDA REQUIRED )
+#find_package( CUDA REQUIRED )
 
 set(OpenCV_INCLUDE_DIR "/usr/local/include")
 include_directories(${OpenCV_INCLUDE_DIR})
