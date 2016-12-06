@@ -56,7 +56,7 @@ float fy = 525.0;  // focal length y
 float cx = 319.5;  // optical center x
 float cy = 239.5;  // optical center y
 
-std::string datasetDIR = "/home/muhammadaly/master dataset/rgbd_dataset_freiburg1_xyz/";
+std::string datasetDIR = "/home/muhammadaly/master_dataset/rgbd_dataset_freiburg1_xyz/";
 std::string rgbImages = datasetDIR + "rgb/";
 std::string depthImages = datasetDIR + "depth/";
 std::string transformationMatrices = datasetDIR + "transformationMatrices.txt";
@@ -319,7 +319,6 @@ std::vector<FrameData> readDataset()
             int i = 0;
             while (pch != NULL)
             {
-                //                printf ("%s\n",pch);
                 if (i == 2)
                 {
                     tmp = std::string(pch);
@@ -617,6 +616,9 @@ int main ()
         PointCloudT::Ptr CurrentSelectedPointCloud (new PointCloudT), PreviousSelectedPointCloud (new PointCloudT);
         generateSelectedPointCloud(good_matches,CVPreviousKeypoints,CVCurrentKeypoints,previousFrame , currentFrame
                                    ,PreviousSelectedPointCloud ,CurrentSelectedPointCloud);
+
+        //visualizePointCloud(PreviousSelectedPointCloud,CurrentSelectedPointCloud);
+
         Eigen::Matrix4f transformation ;
         int inliers = RANSACRegister(CurrentSelectedPointCloud,PreviousSelectedPointCloud , transformation);
         printf("inliers : %i\n" , inliers);
