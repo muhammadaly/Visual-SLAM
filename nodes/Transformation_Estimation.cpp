@@ -1,36 +1,20 @@
-#include <math.h>
-#include <memory>
-
-#include <ros/ros.h>
+#include "ros/ros.h"
 #include <sensor_msgs/PointCloud2.h>
 #include <std_msgs/Float64.h>
 
 #include <pcl_conversions/pcl_conversions.h>
-#include <pcl/visualization/pcl_visualizer.h>
-#include <pcl/io/pcd_io.h>
+
+#include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
-#include <pcl/filters/filter.h>
-#include <pcl/search/search.h>
-#include <pcl/search/kdtree.h>
-#include <pcl/features/normal_3d.h>
-#include <pcl/filters/passthrough.h>
-#include <pcl/segmentation/region_growing.h>
-#include <pcl/filters/extract_indices.h>
-#include <pcl/filters/voxel_grid.h>
-
-
-#include <tf/transform_listener.h>
-#include <laser_geometry/laser_geometry.h>
+#include <pcl/visualization/pcl_visualizer.h>
 
 static const int ORBFeatureVectorLength = 32;
-static const int BRISKFeatureVectorLength = 64;
 
 typedef pcl::PointXYZ PointT;
 typedef pcl::PointCloud<PointT> PointCloudT;
-typedef pcl::Histogram<BRISKFeatureVectorLength> FeatureT;
+typedef pcl::Histogram<ORBFeatureVectorLength> FeatureT;
 typedef pcl::PointCloud<FeatureT> FeatureCloudT;
 typedef pcl::visualization::PointCloudColorHandlerCustom<PointT> ColorHandlerT;
-
 
 void visualizePointCloud(PointCloudT::ConstPtr cloud , PointCloudT::ConstPtr adjusted_cloud)
 {
