@@ -33,10 +33,12 @@ link_directories(${PCL_LIBRARY_DIRS} /usr/local/lib)
 add_definitions(${PCL_DEFINITIONS})
 
 set(SOURCES src/framedata.cpp
-            src/Feature_Extraction/CVORBFeatureExtractorAndDescriptor.cpp)
+            src/Feature_Extraction/CVORBFeatureExtractorAndDescriptor.cpp
+            src/Feature_Extraction/pclfeaturedescriptor.cpp)
 set(HEADERS include/visual_slam/framedata.h
             include/visual_slam/Feature_Extraction/FeatureExtractorAndDescriptor.h
-            include/visual_slam/Feature_Extraction/CVORBFeatureExtractorAndDescriptor.h)
+            include/visual_slam/Feature_Extraction/CVORBFeatureExtractorAndDescriptor.h
+            include/visual_slam/Feature_Extraction/pclfeaturedescriptor.h)
 #------------------------------------------------------
 add_executable(Transformation_Estimation_RANSAC src/Transformation_Estimation_RANSAC.cpp ${SOURCES} ${HEADERS})
 target_link_libraries(Transformation_Estimation_RANSAC ${catkin_LIBRARIES} ${OpenCV_LIBS} ${PCL_LIBRARIES})
