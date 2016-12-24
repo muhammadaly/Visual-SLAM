@@ -49,6 +49,7 @@ void Transformation_Estimator::PointCloudCallback(const sensor_msgs::PointCloud2
     {
         previousPC = PointCloudT::Ptr(new PointCloudT);
         pcl::fromROSMsg(*cloud_msg, *previousPC);
+        printf("First one !");
     }
     else
     {
@@ -57,6 +58,7 @@ void Transformation_Estimator::PointCloudCallback(const sensor_msgs::PointCloud2
         estimateTransform();
         previousPC = currentPC;
         visualizePointCloud(previousPC , currentPC);
+        printf("New one !");
     }
 }
 
