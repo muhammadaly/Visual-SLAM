@@ -10,7 +10,7 @@
 
 static const int ORBFeatureVectorLength = 32;
 
-typedef pcl::PointXYZ PointT;
+typedef pcl::PointXYZRGB PointT;
 typedef pcl::PointCloud<PointT> PointCloudT;
 typedef pcl::Histogram<ORBFeatureVectorLength> FeatureT;
 typedef pcl::PointCloud<FeatureT> FeatureCloudT;
@@ -33,6 +33,8 @@ private:
     ros::Subscriber pointcloud_sub ;
 
     PointCloudT::Ptr previousPC , currentPC ;
+
+    Eigen::Matrix4f estimateTransform();
 };
 
 
@@ -47,14 +49,22 @@ void Transformation_Estimator::PointCloudCallback(const sensor_msgs::PointCloud2
     {
         previousPC = PointCloudT::Ptr(new PointCloudT);
         pcl::fromROSMsg(*cloud_msg, *previousPC);
+        printf("First one !");
     }
     else
     {
         currentPC = PointCloudT::Ptr(new PointCloudT);
         pcl::fromROSMsg(*cloud_msg, *currentPC);
+        estimateTransform();
         previousPC = currentPC;
         visualizePointCloud(previousPC , currentPC);
+        printf("New one !");
     }
+}
+
+Eigen::Matrix4f Transformation_Estimator::estimateTransform()
+{
+
 }
 
 int main(int argc, char** argv)

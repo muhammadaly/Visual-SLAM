@@ -33,20 +33,28 @@ link_directories(${PCL_LIBRARY_DIRS} /usr/local/lib)
 add_definitions(${PCL_DEFINITIONS})
 
 set(SOURCES src/framedata.cpp
-            src/Feature_Extraction/CVORBFeatureExtractorAndDescriptor.cpp)
+            src/Feature_Extraction/CVORBFeatureExtractorAndDescriptor.cpp
+            src/Feature_Extraction/pclfeaturedescriptor.cpp
+            src/Feature_Extraction/pclfeatureextraction.cpp)
 set(HEADERS include/visual_slam/framedata.h
             include/visual_slam/Feature_Extraction/FeatureExtractorAndDescriptor.h
-            include/visual_slam/Feature_Extraction/CVORBFeatureExtractorAndDescriptor.h)
+            include/visual_slam/Feature_Extraction/CVORBFeatureExtractorAndDescriptor.h
+            include/visual_slam/Feature_Extraction/pclfeaturedescriptor.h
+            include/visual_slam/Feature_Extraction/pclfeatureextraction.h)
+
 #------------------------------------------------------
-add_executable(Transformation_Estimation_RANSAC src/Transformation_Estimation_RANSAC.cpp ${SOURCES} ${HEADERS})
-target_link_libraries(Transformation_Estimation_RANSAC ${catkin_LIBRARIES} ${OpenCV_LIBS} ${PCL_LIBRARIES})
+#add_executable(Transformation_Estimation_RANSAC src/Transformation_Estimation_RANSAC.cpp ${SOURCES} ${HEADERS})
+#target_link_libraries(Transformation_Estimation_RANSAC ${catkin_LIBRARIES} ${OpenCV_LIBS} ${PCL_LIBRARIES})
 #------------------------------------------------------
-add_executable(Transformation src/Transformation.cpp ${SOURCES} ${HEADERS})
-target_link_libraries(Transformation ${catkin_LIBRARIES} ${OpenCV_LIBS} ${PCL_LIBRARIES})
+#add_executable(Transformation src/Transformation.cpp ${SOURCES} ${HEADERS})
+#target_link_libraries(Transformation ${catkin_LIBRARIES} ${OpenCV_LIBS} ${PCL_LIBRARIES})
 #------------------------------------------------------
-add_executable(Feature_Ext_Mat src/Feature_Ext_Mat.cpp ${SOURCES} ${HEADERS})
-target_link_libraries(Feature_Ext_Mat ${catkin_LIBRARIES} ${OpenCV_LIBS} ${PCL_LIBRARIES})
+#add_executable(Feature_Ext_Mat src/Feature_Ext_Mat.cpp ${SOURCES} ${HEADERS})
+#target_link_libraries(Feature_Ext_Mat ${catkin_LIBRARIES} ${OpenCV_LIBS} ${PCL_LIBRARIES})
 #------------------------------------------------------
 add_executable(Transformation_Estimation nodes/Transformation_Estimation.cpp ${SOURCES} ${HEADERS})
 target_link_libraries(Transformation_Estimation ${catkin_LIBRARIES} ${OpenCV_LIBS} ${PCL_LIBRARIES})
+#------------------------------------------------------
+add_executable(tumpointcloudpublisher nodes/tumpointcloudpublisher.cpp ${SOURCES} ${HEADERS})
+target_link_libraries(tumpointcloudpublisher ${catkin_LIBRARIES} ${OpenCV_LIBS} ${PCL_LIBRARIES})
 #------------------------------------------------------
