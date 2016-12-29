@@ -8,11 +8,11 @@ set(${PROJECT_NAME}_CATKIN_DEPS
     pcl_conversions
     pcl_ros
     std_msgs)
-set(CMAKE_CXX_FLAGS "")
 set(CMAKE_BUILD_TYPE Debug)
 
-find_package(catkin REQUIRED COMPONENTS ${${PROJECT_NAME}_CATKIN_DEPS})
+SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x -Wall")
 
+find_package(catkin REQUIRED COMPONENTS ${${PROJECT_NAME}_CATKIN_DEPS})
 find_package(PCL 1.7 REQUIRED REQUIRED COMPONENTS filters io registration segmentation visualization)
 
 set(OpenCV_INCLUDE_DIR "/usr/local/include")
@@ -25,7 +25,8 @@ include_directories(include
                 ${PCL_INCLUDE_DIRS}
                 ${PNG_INCLUDE_DIRS}
                 ${catkin_INCLUDE_DIRS}
-                ${Boost_INCLUDE_DIR})
+                ${Boost_INCLUDE_DIR}
+                ${G2O_INCLUDE_DIR})
 
 catkin_package(CATKIN_DEPENDS ${${PROJECT_NAME}_CATKIN_DEPS})
 
@@ -57,4 +58,7 @@ target_link_libraries(Transformation_Estimation ${catkin_LIBRARIES} ${OpenCV_LIB
 #------------------------------------------------------
 add_executable(tumpointcloudpublisher nodes/tumpointcloudpublisher.cpp ${SOURCES} ${HEADERS})
 target_link_libraries(tumpointcloudpublisher ${catkin_LIBRARIES} ${OpenCV_LIBS} ${PCL_LIBRARIES})
+#------------------------------------------------------
+add_executable(ba_demo nodes/ba_demo.cpp ${SOURCES} ${HEADERS})
+target_link_libraries(ba_demo ${catkin_LIBRARIES} ${OpenCV_LIBS} ${PCL_LIBRARIES})
 #------------------------------------------------------

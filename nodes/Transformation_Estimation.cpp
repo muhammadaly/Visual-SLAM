@@ -40,7 +40,7 @@ private:
 
 Transformation_Estimator::Transformation_Estimator()
 {
-    pointcloud_sub = _node.subscribe<sensor_msgs::PointCloud2> ("/scan_pc_f", 1, &Transformation_Estimator::PointCloudCallback, this);
+    pointcloud_sub = _node.subscribe<sensor_msgs::PointCloud2> ("/cloud_in", 1, &Transformation_Estimator::PointCloudCallback, this);
 }
 
 void Transformation_Estimator::PointCloudCallback(const sensor_msgs::PointCloud2::ConstPtr& cloud_msg)
