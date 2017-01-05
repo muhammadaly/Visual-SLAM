@@ -53,12 +53,16 @@ add_definitions(${PCL_DEFINITIONS})
 set(SOURCES src/framedata.cpp
     src/Feature_Extraction/CVORBFeatureExtractorAndDescriptor.cpp
     src/Feature_Extraction/pclfeaturedescriptor.cpp
-    src/Feature_Extraction/pclfeatureextraction.cpp)
+    src/Feature_Extraction/pclfeatureextraction.cpp
+    src/Transformation_Estimation/TransformationEstimator.cpp
+    src/Transformation_Estimation/PCL3DRANSACTransformationEstimator.cpp)
 set(HEADERS include/visual_slam/framedata.h
     include/visual_slam/Feature_Extraction/FeatureExtractorAndDescriptor.h
     include/visual_slam/Feature_Extraction/CVORBFeatureExtractorAndDescriptor.h
     include/visual_slam/Feature_Extraction/pclfeaturedescriptor.h
-    include/visual_slam/Feature_Extraction/pclfeatureextraction.h)
+    include/visual_slam/Feature_Extraction/pclfeatureextraction.h
+    include/visual_slam/Transformation_Estimation/TransformationEstimator.h
+    include/visual_slam/Transformation_Estimation/PCL3DRANSACTransformationEstimator.h)
 
 #------------------------------------------------------
 #add_executable(Transformation_Estimation_RANSAC src/Transformation_Estimation_RANSAC.cpp ${SOURCES} ${HEADERS})
