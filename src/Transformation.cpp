@@ -180,6 +180,7 @@ std::vector<FrameData> readDataset()
     }
     return frames;
 }
+
 PointCloudT::Ptr GeneratePointCloud(cv::Mat pImage)
 {
     PointCloudT::Ptr cloud (new PointCloudT);

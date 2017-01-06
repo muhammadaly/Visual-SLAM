@@ -55,14 +55,20 @@ set(SOURCES src/framedata.cpp
     src/Feature_Extraction/pclfeaturedescriptor.cpp
     src/Feature_Extraction/pclfeatureextraction.cpp
     src/Transformation_Estimation/TransformationEstimator.cpp
-    src/Transformation_Estimation/PCL3DRANSACTransformationEstimator.cpp)
+    src/Transformation_Estimation/PCL3DRANSACTransformationEstimator.cpp
+    src/Feature_Matching/cvflannfeaturematcher.cpp
+    src/Feature_Matching/FeatureMatcher.cpp
+    src/Utilities/PCLUtilities.cpp)
 set(HEADERS include/visual_slam/framedata.h
     include/visual_slam/Feature_Extraction/FeatureExtractorAndDescriptor.h
     include/visual_slam/Feature_Extraction/CVORBFeatureExtractorAndDescriptor.h
     include/visual_slam/Feature_Extraction/pclfeaturedescriptor.h
     include/visual_slam/Feature_Extraction/pclfeatureextraction.h
     include/visual_slam/Transformation_Estimation/TransformationEstimator.h
-    include/visual_slam/Transformation_Estimation/PCL3DRANSACTransformationEstimator.h)
+    include/visual_slam/Transformation_Estimation/PCL3DRANSACTransformationEstimator.h
+    include/visual_slam/Feature_Matching/cvflannfeaturematcher.h
+    include/visual_slam/Feature_Matching/FeatureMatcher.h
+    include/visual_slam/Utilities/PCLUtilities.h)
 
 #------------------------------------------------------
 #add_executable(Transformation_Estimation_RANSAC src/Transformation_Estimation_RANSAC.cpp ${SOURCES} ${HEADERS})
@@ -76,9 +82,6 @@ set(HEADERS include/visual_slam/framedata.h
 #------------------------------------------------------
 add_executable(Transformation_Estimation nodes/Transformation_Estimation.cpp ${SOURCES} ${HEADERS})
 target_link_libraries(Transformation_Estimation ${catkin_LIBRARIES} ${OpenCV_LIBS} ${PCL_LIBRARIES})
-#------------------------------------------------------
-add_executable(tumpointcloudpublisher nodes/tumpointcloudpublisher.cpp ${SOURCES} ${HEADERS})
-target_link_libraries(tumpointcloudpublisher ${catkin_LIBRARIES} ${OpenCV_LIBS} ${PCL_LIBRARIES})
 #------------------------------------------------------
 add_executable(ba_demo nodes/ba_demo.cpp ${SOURCES} ${HEADERS})
 target_link_libraries(ba_demo ${catkin_LIBRARIES} ${OpenCV_LIBS} ${PCL_LIBRARIES} ${G2O_LIBS})

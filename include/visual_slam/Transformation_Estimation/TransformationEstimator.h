@@ -11,7 +11,7 @@
 class TransformationEstimator
 {
 public:
-    virtual void estimateTransformation(PointCloudT , PointCloudT, TFMatrix&)=0;
+    virtual void estimateTransformation(PointCloudT::Ptr, FeatureCloudT::Ptr ,PointCloudT::Ptr , FeatureCloudT::Ptr,  TFMatrix&)=0;
 };
 
 #endif // TRANSFORMATIONESTIMATOR_H
