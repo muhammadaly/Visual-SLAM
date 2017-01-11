@@ -12,9 +12,6 @@ class TransformationEstimator
 {
 public:
     virtual void estimateTransformation(PointCloudT::Ptr, FeatureCloudT::Ptr ,PointCloudT::Ptr , FeatureCloudT::Ptr,  TFMatrix&)=0;
-  Pose_6D operator+(Pose_6D const& pose, TFMatrix const& transformation){
-
-  }
 };
 
 #endif // TRANSFORMATIONESTIMATOR_H

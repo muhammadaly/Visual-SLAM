@@ -17,8 +17,8 @@
 #include <visual_slam/Feature_Matching/cvflannfeaturematcher.h>
 #include <visual_slam/Utilities/PCLUtilities.h>
 
-std::string machineName = "muhammadaly";
-std::string datasetName = "rgbd_dataset_freiburg1_xyz";
+std::string machineName = "ivsystems";
+std::string datasetName = "rgbd_dataset_freiburg1_360";
 std::string datasetDIR = "/home/"+machineName+"/master_dataset/"+datasetName+"/";
 std::string rgbImages = datasetDIR + "rgb/";
 std::string depthImages = datasetDIR + "depth/";
@@ -80,7 +80,7 @@ std::vector<FrameData> readDataset()
 class Transformation_EstimatorNodeHandler {
 public:
   Transformation_EstimatorNodeHandler();
-  Eigen::Matrix4f estimateTransformBetween2Scenes(FrameData previousFrame , FrameData currentFrame, TFMatrix& transformation);
+  Eigen::Matrix4f estimateTransformBetween2Scenes(FrameData previousFrame , FrameData currentFrame, Pose_6D& transformation);
 private:
   ros::NodeHandle _node;
 
@@ -99,23 +99,26 @@ Transformation_EstimatorNodeHandler::Transformation_EstimatorNodeHandler()
   featureExtractorAndDescriptor = std::unique_ptr<CVORBFeatureExtractorAndDescriptor>(new CVORBFeatureExtractorAndDescriptor);
   featureMatcher = std::unique_ptr<CVFLANNFeatureMatcher>(new CVFLANNFeatureMatcher);
 }
-Eigen::Matrix4f Transformation_EstimatorNodeHandler::estimateTransformBetween2Scenes(FrameData previousFrame, FrameData currentFrame, TFMatrix& transformation)
+Eigen::Matrix4f Transformation_EstimatorNodeHandler::estimateTransformBetween2Scenes(FrameData previousFrame, FrameData currentFrame, Pose_6D& transformation)
 {
   std::vector<cv::KeyPoint> tPreviousKeypoints , tCurrentKeypoints ;
   std::vector<cv::DMatch> good_matches;
   cv::Mat tPreviousDescriptors,tCurrentDescriptors;
   PointCloudT::Ptr tCurrentKeypointsPC (new PointCloudT),tPreviousKeypointsPC (new PointCloudT);
   FeatureCloudT::Ptr tCurrentDescriptorsPC (new FeatureCloudT),tPreviousDescriptorsPC (new FeatureCloudT);
+  TFMatrix trans;
 
   featureExtractorAndDescriptor->computeDescriptors(previousFrame , tPreviousKeypoints , tPreviousDescriptors);
   featureExtractorAndDescriptor->computeDescriptors(currentFrame , tCurrentKeypoints , tCurrentDescriptors);
   featureMatcher->matching2ImageFeatures(tPreviousDescriptors , tCurrentDescriptors,good_matches);
+
   pclUTL.getKeypointsAndDescriptors(good_matches,tPreviousKeypoints,tCurrentKeypoints,
                                     tPreviousDescriptors,tCurrentDescriptors,previousFrame,currentFrame,
                                     tPreviousKeypointsPC,tCurrentKeypointsPC,
                                     tPreviousDescriptorsPC,tCurrentDescriptorsPC);
-  tfEstimator->estimateTransformation(tPreviousKeypointsPC,tPreviousDescriptorsPC,tCurrentKeypointsPC,tCurrentDescriptorsPC,transformation);
-//  publishOnTF(transformation);
+  tfEstimator->estimateTransformation(tPreviousKeypointsPC,tPreviousDescriptorsPC,tCurrentKeypointsPC,tCurrentDescriptorsPC,trans);
+  transformation.matrix() = trans;
+  publishOnTF(transformation.matrix());
 }
 
 void Transformation_EstimatorNodeHandler::publishOnTF(TFMatrix transformation)
@@ -145,12 +148,14 @@ int main(int argc, char** argv)
   std::unique_ptr<Transformation_EstimatorNodeHandler> nh(new Transformation_EstimatorNodeHandler);
 
   std::vector<FrameData> Frames = readDataset();
-  Pose_6D robot_pose = Pose_6D::Zero();
+  Pose_6D robot_pose;
+  robot_pose.matrix() = Eigen::Matrix4f::Zero();
   for(int i = 1 ; i < 2 ; i ++)
   {
     FrameData previousFrame = Frames[i-1];
     FrameData currentFrame = Frames[i];
-    TFMatrix tf;
+    Pose_6D tf;
+
     nh->estimateTransformBetween2Scenes(previousFrame,currentFrame,tf);
     robot_pose = tf * robot_pose;
   }

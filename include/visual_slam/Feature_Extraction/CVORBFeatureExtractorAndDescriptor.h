@@ -8,7 +8,7 @@ class CVORBFeatureExtractorAndDescriptor : public FeatureExtractorAndDescriptor
 {
 public:
     CVORBFeatureExtractorAndDescriptor();
-    cv::Mat computeDescriptors(FrameData pFrameData , std::vector<cv::KeyPoint>& tkeypoint ,cv::Mat& tdescriptors);
+    void computeDescriptors(FrameData pFrameData , std::vector<cv::KeyPoint>& tkeypoint ,cv::Mat& tdescriptors);
 private:
     cv::Ptr<cv::ORB> orb ;
 };

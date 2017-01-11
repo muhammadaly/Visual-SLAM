@@ -9,8 +9,6 @@
 #include <pcl/common/time.h>
 class PCL3DRANSACTransformationEstimator : public TransformationEstimator
 {
-
-
   // TransformationEstimator interface
 public:
   void estimateTransformation(PointCloudT::Ptr, FeatureCloudT::Ptr, PointCloudT::Ptr, FeatureCloudT::Ptr, TFMatrix &);
