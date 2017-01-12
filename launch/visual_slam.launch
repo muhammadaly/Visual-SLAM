@@ -1,0 +1,5 @@
+<launch>
+    <node pkg="visual_slam" type="Transformation_Estimation" name="Transformation_Estimation"/>
+<!--    <node name="rviz" pkg="rviz" type="rviz" required="true" />-->
+
+</launch>

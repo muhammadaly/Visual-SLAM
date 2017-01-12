@@ -26,11 +26,38 @@ std::string transformationMatrices = datasetDIR + "transformationMatricesPCL.txt
 std::string featureMatching = datasetDIR + "matching/";
 std::string frames_matching = datasetDIR + "matching_frames.txt";
 
-void visualizePointCloud(PointCloudT::ConstPtr cloud , PointCloudT::ConstPtr adjusted_cloud)
+PointCloudT::Ptr GeneratePointCloud(cv::Mat pImage)
+{
+    PointCloudT::Ptr cloud (new PointCloudT);
+
+    float Z , factor = 5000;
+    for(int rowInd = 0 ; rowInd < pImage.rows ; rowInd++)
+        for(int colInd = 0 ; colInd < pImage.cols ; colInd++)
+        {
+            Z = pImage.at<u_int16_t>(rowInd , colInd) / factor;
+            PointT p;
+            p.x = ((colInd - cx) * Z )/fx;
+            p.y = ((rowInd - cy) * Z )/fy;
+            p.z = Z;
+
+            cloud->points.push_back(p);
+        }
+    return cloud;
+}
+
+void visualizePointCloud(PointCloudT::ConstPtr secondPC , PointCloudT::ConstPtr firstPC, PointCloudT::ConstPtr aligned)
 {
   pcl::visualization::PCLVisualizer visu("Point Cloud Visualizer");
-  visu.addPointCloud(cloud,ColorHandlerT(cloud, 0.0, 0.0, 255.0), "cloud");
-  visu.addPointCloud(adjusted_cloud,ColorHandlerT(adjusted_cloud, 0.0, 255.0, 0.0), "adjusted_cloud");
+  visu.addPointCloud(secondPC,ColorHandlerT(secondPC, 0.0, 0.0, 255.0), "secondPC");
+  visu.addPointCloud(firstPC,ColorHandlerT(firstPC, 0.0, 255.0, 0.0), "firstPC");
+  visu.addPointCloud(aligned,ColorHandlerT(aligned, 255.0, 255.0, 255.0), "cloud");
+  visu.spin();
+}
+void visualizePointCloud(PointCloudT::ConstPtr secondPC , PointCloudT::ConstPtr firstPC)
+{
+  pcl::visualization::PCLVisualizer visu("Point Cloud Visualizer");
+  visu.addPointCloud(secondPC,ColorHandlerT(secondPC, 255.0, 255.0, 255.0), "secondPC");
+  visu.addPointCloud(firstPC,ColorHandlerT(firstPC, 0.0, 255.0, 0.0), "firstPC");
   visu.spin();
 }
 std::vector<FrameData> readDataset()
@@ -76,11 +103,27 @@ std::vector<FrameData> readDataset()
   return frames;
 }
 
+void showMatchingImage(std::vector<cv::DMatch> good_matches
+                       , std::vector<cv::KeyPoint> currentImageKeypoints , std::vector<cv::KeyPoint> previousImageKeypoints
+                       , FrameData currentFrame, FrameData previousFrame)
+{
+
+    cv::Mat currentImage = currentFrame.getFrameMatrix();
+    cv::Mat previousImage = previousFrame.getFrameMatrix();
+
+    cv::namedWindow("matches", 1);
+    cv::Mat img_matches;
+    cv::drawMatches(currentImage, currentImageKeypoints, previousImage, previousImageKeypoints, good_matches, img_matches);
+    cv::imshow("matches", img_matches);
+    cv::waitKey(0);
+}
 
 class Transformation_EstimatorNodeHandler {
 public:
   Transformation_EstimatorNodeHandler();
   Eigen::Matrix4f estimateTransformBetween2Scenes(FrameData previousFrame , FrameData currentFrame, Pose_6D& transformation);
+
+  void publishOnTF(TFMatrix);
 private:
   ros::NodeHandle _node;
 
@@ -88,8 +131,6 @@ private:
   std::unique_ptr<FeatureExtractorAndDescriptor> featureExtractorAndDescriptor;
   std::unique_ptr<FeatureMatcher> featureMatcher;
   PCLUtilities pclUTL;
-
-  void publishOnTF(TFMatrix);
 };
 
 
@@ -102,23 +143,27 @@ Transformation_EstimatorNodeHandler::Transformation_EstimatorNodeHandler()
 Eigen::Matrix4f Transformation_EstimatorNodeHandler::estimateTransformBetween2Scenes(FrameData previousFrame, FrameData currentFrame, Pose_6D& transformation)
 {
   std::vector<cv::KeyPoint> tPreviousKeypoints , tCurrentKeypoints ;
-  std::vector<cv::DMatch> good_matches;
+  std::vector<cv::DMatch> matches;
   cv::Mat tPreviousDescriptors,tCurrentDescriptors;
-  PointCloudT::Ptr tCurrentKeypointsPC (new PointCloudT),tPreviousKeypointsPC (new PointCloudT);
+  PointCloudT::Ptr tCurrentKeypointsPC (new PointCloudT),tPreviousKeypointsPC (new PointCloudT) , alignedPC(new PointCloudT);
   FeatureCloudT::Ptr tCurrentDescriptorsPC (new FeatureCloudT),tPreviousDescriptorsPC (new FeatureCloudT);
   TFMatrix trans;
 
   featureExtractorAndDescriptor->computeDescriptors(previousFrame , tPreviousKeypoints , tPreviousDescriptors);
   featureExtractorAndDescriptor->computeDescriptors(currentFrame , tCurrentKeypoints , tCurrentDescriptors);
-  featureMatcher->matching2ImageFeatures(tPreviousDescriptors , tCurrentDescriptors,good_matches);
-
-  pclUTL.getKeypointsAndDescriptors(good_matches,tPreviousKeypoints,tCurrentKeypoints,
+  featureMatcher->matching2ImageFeatures(tPreviousDescriptors , tCurrentDescriptors,matches);
+  pclUTL.getKeypointsAndDescriptors(matches,tPreviousKeypoints,tCurrentKeypoints,
                                     tPreviousDescriptors,tCurrentDescriptors,previousFrame,currentFrame,
                                     tPreviousKeypointsPC,tCurrentKeypointsPC,
                                     tPreviousDescriptorsPC,tCurrentDescriptorsPC);
-  tfEstimator->estimateTransformation(tPreviousKeypointsPC,tPreviousDescriptorsPC,tCurrentKeypointsPC,tCurrentDescriptorsPC,trans);
+//  tfEstimator->estimateTransformation(tPreviousKeypointsPC,tPreviousDescriptorsPC,tCurrentKeypointsPC,tCurrentDescriptorsPC,trans,alignedPC);
+
+  PointCloudT::Ptr currentScene = GeneratePointCloud(currentFrame.getDepthMatrix());
+  PointCloudT::Ptr previousScene = GeneratePointCloud(currentFrame.getDepthMatrix());
+  visualizePointCloud(previousScene , tPreviousKeypointsPC);
+  visualizePointCloud(currentScene , tCurrentKeypointsPC);
+
   transformation.matrix() = trans;
-  publishOnTF(transformation.matrix());
 }
 
 void Transformation_EstimatorNodeHandler::publishOnTF(TFMatrix transformation)
@@ -150,14 +195,17 @@ int main(int argc, char** argv)
   std::vector<FrameData> Frames = readDataset();
   Pose_6D robot_pose;
   robot_pose.matrix() = Eigen::Matrix4f::Zero();
-  for(int i = 1 ; i < 2 ; i ++)
+  for(int i = 2 ; i < 5 ; i ++)
   {
+    ROS_INFO("%i" , i);
     FrameData previousFrame = Frames[i-1];
     FrameData currentFrame = Frames[i];
     Pose_6D tf;
+    tf.matrix() = Eigen::Matrix4f::Zero();
 
     nh->estimateTransformBetween2Scenes(previousFrame,currentFrame,tf);
     robot_pose = tf * robot_pose;
+    nh->publishOnTF(robot_pose.matrix());
   }
   return 0;
 }

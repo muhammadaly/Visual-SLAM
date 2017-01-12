@@ -11,6 +11,8 @@ public:
   void matching2ImageFeatures(cv::Mat, cv::Mat, std::vector<cv::DMatch> &);
 private :
   cv::FlannBasedMatcher matcher;
+
+  void filterMatches(std::vector<cv::DMatch> , std::vector<cv::DMatch>&);
 };
 
 #endif // CVFLANNFEATUREMATCHER_H
