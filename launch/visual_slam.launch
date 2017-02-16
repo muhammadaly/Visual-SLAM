@@ -1,4 +1,3 @@
 <launch>
     <node pkg="visual_slam" type="Transformation_Estimation" name="Transformation_Estimation" output="screen"/>
-<!--    <node pkg="rviz" type="rviz" name="rviz"/>-->
 </launch>
