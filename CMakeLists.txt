@@ -59,7 +59,11 @@ set(SOURCES src/framedata.cpp
     src/Transformation_Estimation/PCL3DRANSACTransformationEstimator.cpp
     src/Feature_Matching/cvflannfeaturematcher.cpp
     src/Feature_Matching/FeatureMatcher.cpp
-    src/Utilities/PCLUtilities.cpp)
+    src/Utilities/PCLUtilities.cpp
+    src/custom_types/vertex_pose.cpp
+    src/custom_types/edge_pose_pose.cpp
+    src/Map_Optimization/g2omapoptimizer.cpp)
+
 set(HEADERS include/visual_slam/framedata.h
     include/visual_slam/Feature_Extraction/FeatureExtractorAndDescriptor.h
     include/visual_slam/Feature_Extraction/CVORBFeatureExtractorAndDescriptor.h
@@ -70,7 +74,10 @@ set(HEADERS include/visual_slam/framedata.h
     include/visual_slam/Transformation_Estimation/PCL3DRANSACTransformationEstimator.h
     include/visual_slam/Feature_Matching/cvflannfeaturematcher.h
     include/visual_slam/Feature_Matching/FeatureMatcher.h
-    include/visual_slam/Utilities/PCLUtilities.h)
+    include/visual_slam/Utilities/PCLUtilities.h
+    include/visual_slam/custom_types/vertex_pose.h
+    include/visual_slam/custom_types/edge_pose_pose.h
+    include/visual_slam/Map_Optimization/g2omapoptimizer.h)
 
 
 
@@ -85,7 +92,7 @@ set(HEADERS include/visual_slam/framedata.h
 #target_link_libraries(Feature_Ext_Mat ${catkin_LIBRARIES} ${OpenCV_LIBS} ${PCL_LIBRARIES})
 #------------------------------------------------------
 add_executable(Transformation_Estimation nodes/Transformation_Estimation.cpp ${SOURCES} ${HEADERS})
-target_link_libraries(Transformation_Estimation ${catkin_LIBRARIES} ${OpenCV_LIBS} ${PCL_LIBRARIES})
+target_link_libraries(Transformation_Estimation ${catkin_LIBRARIES} ${OpenCV_LIBS} ${PCL_LIBRARIES} ${G2O_LIBS})
 #------------------------------------------------------
 add_executable(ba_demo nodes/ba_demo.cpp ${SOURCES} ${HEADERS})
 target_link_libraries(ba_demo ${catkin_LIBRARIES} ${OpenCV_LIBS} ${PCL_LIBRARIES} ${G2O_LIBS})

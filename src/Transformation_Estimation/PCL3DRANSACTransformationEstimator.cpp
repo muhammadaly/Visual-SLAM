@@ -1,6 +1,6 @@
 #include <visual_slam/Transformation_Estimation/PCL3DRANSACTransformationEstimator.h>
 
-void PCL3DRANSACTransformationEstimator::estimateTransformation(PointCloudT::Ptr firstPC, FeatureCloudT::Ptr firstPCFeatures, PointCloudT::Ptr secondPC, FeatureCloudT::Ptr secondPCFeatures, TFMatrix & transformation,PointCloudT::Ptr& alignedPC)
+bool PCL3DRANSACTransformationEstimator::estimateTransformation(PointCloudT::Ptr firstPC, FeatureCloudT::Ptr firstPCFeatures, PointCloudT::Ptr secondPC, FeatureCloudT::Ptr secondPCFeatures, TFMatrix & transformation,PointCloudT::Ptr& alignedPC)
 {
 
   int MaximumIterations = 50000; // Number of RANSAC iterations
@@ -23,7 +23,13 @@ void PCL3DRANSACTransformationEstimator::estimateTransformation(PointCloudT::Ptr
   align.setInlierFraction(InlierFraction); // Required inlier fraction for accepting a pose hypothesis
   align.align(*alignedPC);
   if(align.hasConverged())
+  {
     transformation = align.getFinalTransformation();
+    return true;
+  }
   else
+  {
     pcl::console::print_error("Alignment failed!\n");
+    return false;
+  }
 }

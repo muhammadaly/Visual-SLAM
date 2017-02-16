@@ -3,6 +3,7 @@
 
 #include "ros/ros.h"
 #include <tf/transform_broadcaster.h>
+#include <nav_msgs/Odometry.h>
 
 #include <pcl_conversions/pcl_conversions.h>
 
@@ -28,21 +29,21 @@ std::string frames_matching = datasetDIR + "matching_frames.txt";
 
 PointCloudT::Ptr GeneratePointCloud(cv::Mat pImage)
 {
-    PointCloudT::Ptr cloud (new PointCloudT);
+  PointCloudT::Ptr cloud (new PointCloudT);
 
-    float Z , factor = 5000;
-    for(int rowInd = 0 ; rowInd < pImage.rows ; rowInd++)
-        for(int colInd = 0 ; colInd < pImage.cols ; colInd++)
-        {
-            Z = pImage.at<u_int16_t>(rowInd , colInd) / factor;
-            PointT p;
-            p.x = ((colInd - cx) * Z )/fx;
-            p.y = ((rowInd - cy) * Z )/fy;
-            p.z = Z;
+  float Z , factor = 5000;
+  for(int rowInd = 0 ; rowInd < pImage.rows ; rowInd++)
+    for(int colInd = 0 ; colInd < pImage.cols ; colInd++)
+    {
+      Z = pImage.at<u_int16_t>(rowInd , colInd) / factor;
+      PointT p;
+      p.x = ((colInd - cx) * Z )/fx;
+      p.y = ((rowInd - cy) * Z )/fy;
+      p.z = Z;
 
-            cloud->points.push_back(p);
-        }
-    return cloud;
+      cloud->points.push_back(p);
+    }
+  return cloud;
 }
 
 void visualizePointCloud(PointCloudT::ConstPtr secondPC , PointCloudT::ConstPtr firstPC, PointCloudT::ConstPtr aligned)
@@ -108,20 +109,20 @@ void showMatchingImage(std::vector<cv::DMatch> good_matches
                        , FrameData currentFrame, FrameData previousFrame)
 {
 
-    cv::Mat currentImage = currentFrame.getFrameMatrix();
-    cv::Mat previousImage = previousFrame.getFrameMatrix();
+  cv::Mat currentImage = currentFrame.getFrameMatrix();
+  cv::Mat previousImage = previousFrame.getFrameMatrix();
 
-    cv::namedWindow("matches", 1);
-    cv::Mat img_matches;
-    cv::drawMatches(currentImage, currentImageKeypoints, previousImage, previousImageKeypoints, good_matches, img_matches);
-    cv::imshow("matches", img_matches);
-    cv::waitKey(0);
+  cv::namedWindow("matches", 1);
+  cv::Mat img_matches;
+  cv::drawMatches(currentImage, currentImageKeypoints, previousImage, previousImageKeypoints, good_matches, img_matches);
+  cv::imshow("matches", img_matches);
+  cv::waitKey(0);
 }
 
 class Transformation_EstimatorNodeHandler {
 public:
   Transformation_EstimatorNodeHandler();
-  Eigen::Matrix4f estimateTransformBetween2Scenes(FrameData previousFrame , FrameData currentFrame, Pose_6D& transformation);
+  bool estimateTransformBetween2Scenes(FrameData previousFrame , FrameData currentFrame, Pose_6D& transformation);
 
   void publishOnTF(TFMatrix);
 private:
@@ -131,6 +132,9 @@ private:
   std::unique_ptr<FeatureExtractorAndDescriptor> featureExtractorAndDescriptor;
   std::unique_ptr<FeatureMatcher> featureMatcher;
   PCLUtilities pclUTL;
+
+  ros::Publisher odom_pub ;
+  tf::TransformBroadcaster br;
 };
 
 
@@ -139,10 +143,12 @@ Transformation_EstimatorNodeHandler::Transformation_EstimatorNodeHandler()
   tfEstimator = std::unique_ptr<PCL3DRANSACTransformationEstimator>(new PCL3DRANSACTransformationEstimator);
   featureExtractorAndDescriptor = std::unique_ptr<CVORBFeatureExtractorAndDescriptor>(new CVORBFeatureExtractorAndDescriptor);
   featureMatcher = std::unique_ptr<CVFLANNFeatureMatcher>(new CVFLANNFeatureMatcher);
+  odom_pub = _node.advertise<nav_msgs::Odometry>("odom", 50);
 }
-Eigen::Matrix4f Transformation_EstimatorNodeHandler::estimateTransformBetween2Scenes(FrameData previousFrame, FrameData currentFrame, Pose_6D& transformation)
+bool Transformation_EstimatorNodeHandler::estimateTransformBetween2Scenes(FrameData previousFrame, FrameData currentFrame, Pose_6D& transformation)
 {
   std::vector<cv::KeyPoint> tPreviousKeypoints , tCurrentKeypoints ;
+  bool done = false;
   std::vector<cv::DMatch> matches;
   cv::Mat tPreviousDescriptors,tCurrentDescriptors;
   PointCloudT::Ptr tCurrentKeypointsPC (new PointCloudT),tPreviousKeypointsPC (new PointCloudT) , alignedPC(new PointCloudT);
@@ -156,22 +162,25 @@ Eigen::Matrix4f Transformation_EstimatorNodeHandler::estimateTransformBetween2Sc
                                     tPreviousDescriptors,tCurrentDescriptors,previousFrame,currentFrame,
                                     tPreviousKeypointsPC,tCurrentKeypointsPC,
                                     tPreviousDescriptorsPC,tCurrentDescriptorsPC);
-//  tfEstimator->estimateTransformation(tPreviousKeypointsPC,tPreviousDescriptorsPC,tCurrentKeypointsPC,tCurrentDescriptorsPC,trans,alignedPC);
+  done = tfEstimator->estimateTransformation(tPreviousKeypointsPC,tPreviousDescriptorsPC,tCurrentKeypointsPC,tCurrentDescriptorsPC,trans,alignedPC);
 
-  PointCloudT::Ptr currentScene = GeneratePointCloud(currentFrame.getDepthMatrix());
-  PointCloudT::Ptr previousScene = GeneratePointCloud(currentFrame.getDepthMatrix());
-  visualizePointCloud(previousScene , tPreviousKeypointsPC);
-  visualizePointCloud(currentScene , tCurrentKeypointsPC);
+  //  PointCloudT::Ptr currentScene = GeneratePointCloud(currentFrame.getDepthMatrix());
+  //  PointCloudT::Ptr previousScene = GeneratePointCloud(currentFrame.getDepthMatrix());
+  //  visualizePointCloud(tPreviousKeypointsPC , tCurrentKeypointsPC,alignedPC);
+  //  visualizePointCloud(currentScene , tCurrentKeypointsPC);
 
   transformation.matrix() = trans;
+  return done;
 }
 
 void Transformation_EstimatorNodeHandler::publishOnTF(TFMatrix transformation)
 {
-  static tf::TransformBroadcaster br;
+  double x = static_cast<double>(transformation(0,3));
+  double y = static_cast<double>(transformation(1,3));
+  double z = static_cast<double>(transformation(2,3));
 
   tf::Vector3 origin;
-  origin.setValue(static_cast<double>(transformation(0,3)),static_cast<double>(transformation(1,3)),static_cast<double>(transformation(2,3)));
+  origin.setValue(x,y,z);
 
   tf::Matrix3x3 tf3d;
   tf3d.setValue(static_cast<double>(transformation(0,0)), static_cast<double>(transformation(0,1)), static_cast<double>(transformation(0,2)),
@@ -179,11 +188,29 @@ void Transformation_EstimatorNodeHandler::publishOnTF(TFMatrix transformation)
                 static_cast<double>(transformation(2,0)), static_cast<double>(transformation(2,1)), static_cast<double>(transformation(2,2)));
   tf::Quaternion tfqt;
   tf3d.getRotation(tfqt);
+  tfqt = tfqt.normalize();
 
   tf::Transform transform;
   transform.setOrigin(origin);
   transform.setRotation(tfqt);
-  br.sendTransform(tf::StampedTransform(transform, ros::Time::now(), "world", "camera"));
+  br.sendTransform(tf::StampedTransform(transform, ros::Time::now(), "odom", "base_link"));
+
+  nav_msgs::Odometry odom;
+  geometry_msgs::Quaternion odom_quat;
+  tf::quaternionTFToMsg(tfqt,odom_quat);
+
+  odom.header.stamp = ros::Time::now();
+  odom.header.frame_id = "odom";
+  odom.child_frame_id = "base_link";
+
+  //set the position
+  odom.pose.pose.position.x = x;
+  odom.pose.pose.position.y = y;
+  odom.pose.pose.position.z = z;
+  odom.pose.pose.orientation = odom_quat;
+
+  //publish the message
+  odom_pub.publish(odom);
 }
 
 int main(int argc, char** argv)
@@ -195,17 +222,25 @@ int main(int argc, char** argv)
   std::vector<FrameData> Frames = readDataset();
   Pose_6D robot_pose;
   robot_pose.matrix() = Eigen::Matrix4f::Zero();
-  for(int i = 2 ; i < 5 ; i ++)
+  bool done = false;
+  int scenes_start = 0 , scenes_end = 30;
+  int first_scn = scenes_start , second_scn = first_scn+1;
+  for(int i = scenes_start ; i <= scenes_end ; i ++)
   {
     ROS_INFO("%i" , i);
-    FrameData previousFrame = Frames[i-1];
-    FrameData currentFrame = Frames[i];
+    FrameData previousFrame = Frames[first_scn];
+    FrameData currentFrame = Frames[second_scn];
     Pose_6D tf;
     tf.matrix() = Eigen::Matrix4f::Zero();
 
-    nh->estimateTransformBetween2Scenes(previousFrame,currentFrame,tf);
-    robot_pose = tf * robot_pose;
-    nh->publishOnTF(robot_pose.matrix());
+    done = nh->estimateTransformBetween2Scenes(previousFrame,currentFrame,tf);
+    first_scn++;
+    second_scn++;
+    if(done)
+    {
+      robot_pose = tf * robot_pose;
+      nh->publishOnTF(robot_pose.matrix());
+    }
   }
   return 0;
 }
