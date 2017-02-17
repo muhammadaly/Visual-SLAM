@@ -4,7 +4,9 @@
 #include "ros/ros.h"
 #include <tf/transform_broadcaster.h>
 #include <nav_msgs/Odometry.h>
-
+#include <nav_msgs/Path.h>
+#include <geometry_msgs/PoseStamped.h>
+#include <geometry_msgs/Pose.h>
 #include <pcl_conversions/pcl_conversions.h>
 
 #include <pcl/point_cloud.h>
@@ -122,9 +124,12 @@ void showMatchingImage(std::vector<cv::DMatch> good_matches
 class Transformation_EstimatorNodeHandler {
 public:
   Transformation_EstimatorNodeHandler();
-  bool estimateTransformBetween2Scenes(FrameData previousFrame , FrameData currentFrame, Pose_6D& transformation);
+  bool estimateTransformBetween2Scenes(FrameData previousFrame , FrameData currentFrame, TFMatrix& transformation);
 
   void publishOnTF(TFMatrix);
+  void publishOdometry(TFMatrix);
+  void publishPose(TFMatrix);
+  void publishFullPath(TFMatrix);
 private:
   ros::NodeHandle _node;
 
@@ -134,7 +139,10 @@ private:
   PCLUtilities pclUTL;
 
   ros::Publisher odom_pub ;
+  ros::Publisher pose_pub;
+  ros::Publisher path_pub;
   tf::TransformBroadcaster br;
+  std::vector<geometry_msgs::PoseStamped> fullPath;
 };
 
 
@@ -144,8 +152,11 @@ Transformation_EstimatorNodeHandler::Transformation_EstimatorNodeHandler()
   featureExtractorAndDescriptor = std::unique_ptr<CVORBFeatureExtractorAndDescriptor>(new CVORBFeatureExtractorAndDescriptor);
   featureMatcher = std::unique_ptr<CVFLANNFeatureMatcher>(new CVFLANNFeatureMatcher);
   odom_pub = _node.advertise<nav_msgs::Odometry>("odom", 50);
+  pose_pub = _node.advertise<geometry_msgs::PoseStamped>("robot_pose",50);
+  path_pub = _node.advertise<nav_msgs::Path>("robot_path",50);
+  fullPath.clear();
 }
-bool Transformation_EstimatorNodeHandler::estimateTransformBetween2Scenes(FrameData previousFrame, FrameData currentFrame, Pose_6D& transformation)
+bool Transformation_EstimatorNodeHandler::estimateTransformBetween2Scenes(FrameData previousFrame, FrameData currentFrame, TFMatrix& transformation)
 {
   std::vector<cv::KeyPoint> tPreviousKeypoints , tCurrentKeypoints ;
   bool done = false;
@@ -153,7 +164,6 @@ bool Transformation_EstimatorNodeHandler::estimateTransformBetween2Scenes(FrameD
   cv::Mat tPreviousDescriptors,tCurrentDescriptors;
   PointCloudT::Ptr tCurrentKeypointsPC (new PointCloudT),tPreviousKeypointsPC (new PointCloudT) , alignedPC(new PointCloudT);
   FeatureCloudT::Ptr tCurrentDescriptorsPC (new FeatureCloudT),tPreviousDescriptorsPC (new FeatureCloudT);
-  TFMatrix trans;
 
   featureExtractorAndDescriptor->computeDescriptors(previousFrame , tPreviousKeypoints , tPreviousDescriptors);
   featureExtractorAndDescriptor->computeDescriptors(currentFrame , tCurrentKeypoints , tCurrentDescriptors);
@@ -162,14 +172,12 @@ bool Transformation_EstimatorNodeHandler::estimateTransformBetween2Scenes(FrameD
                                     tPreviousDescriptors,tCurrentDescriptors,previousFrame,currentFrame,
                                     tPreviousKeypointsPC,tCurrentKeypointsPC,
                                     tPreviousDescriptorsPC,tCurrentDescriptorsPC);
-  done = tfEstimator->estimateTransformation(tPreviousKeypointsPC,tPreviousDescriptorsPC,tCurrentKeypointsPC,tCurrentDescriptorsPC,trans,alignedPC);
+  done = tfEstimator->estimateTransformation(tPreviousKeypointsPC,tPreviousDescriptorsPC,tCurrentKeypointsPC,tCurrentDescriptorsPC,transformation,alignedPC);
 
   //  PointCloudT::Ptr currentScene = GeneratePointCloud(currentFrame.getDepthMatrix());
   //  PointCloudT::Ptr previousScene = GeneratePointCloud(currentFrame.getDepthMatrix());
   //  visualizePointCloud(tPreviousKeypointsPC , tCurrentKeypointsPC,alignedPC);
   //  visualizePointCloud(currentScene , tCurrentKeypointsPC);
-
-  transformation.matrix() = trans;
   return done;
 }
 
@@ -194,10 +202,21 @@ void Transformation_EstimatorNodeHandler::publishOnTF(TFMatrix transformation)
   transform.setOrigin(origin);
   transform.setRotation(tfqt);
   br.sendTransform(tf::StampedTransform(transform, ros::Time::now(), "odom", "base_link"));
+}
+void Transformation_EstimatorNodeHandler::publishOdometry(TFMatrix robot_pose)
+{
+  double x = static_cast<double>(robot_pose(0,3));
+  double y = static_cast<double>(robot_pose(1,3));
+  double z = static_cast<double>(robot_pose(2,3));
+
+  double qw = sqrt(1.0 + robot_pose(0,0) + robot_pose(1,1) + robot_pose(2,2)) / 2.0;
+  double w4 = 4.0 * qw ;
+  double qx = (robot_pose(2,1) - robot_pose(1,2)) / w4;
+  double qy = (robot_pose(0,2) - robot_pose(2,0)) / w4;
+  double qz = (robot_pose(1,0) - robot_pose(0,1)) / w4;
 
   nav_msgs::Odometry odom;
-  geometry_msgs::Quaternion odom_quat;
-  tf::quaternionTFToMsg(tfqt,odom_quat);
+
 
   odom.header.stamp = ros::Time::now();
   odom.header.frame_id = "odom";
@@ -207,10 +226,75 @@ void Transformation_EstimatorNodeHandler::publishOnTF(TFMatrix transformation)
   odom.pose.pose.position.x = x;
   odom.pose.pose.position.y = y;
   odom.pose.pose.position.z = z;
-  odom.pose.pose.orientation = odom_quat;
+  odom.pose.pose.orientation.w = w4;
+  odom.pose.pose.orientation.x = qx;
+  odom.pose.pose.orientation.y = qy;
+  odom.pose.pose.orientation.z = qz;
 
   //publish the message
   odom_pub.publish(odom);
+}
+
+void Transformation_EstimatorNodeHandler::publishPose(TFMatrix robot_pose)
+{
+  double x = static_cast<double>(robot_pose(0,3));
+  double y = static_cast<double>(robot_pose(1,3));
+  double z = static_cast<double>(robot_pose(2,3));
+
+  double qw = sqrt(1.0 + robot_pose(0,0) + robot_pose(1,1) + robot_pose(2,2)) / 2.0;
+  double w4 = 4.0 * qw ;
+  double qx = (robot_pose(2,1) - robot_pose(1,2)) / w4;
+  double qy = (robot_pose(0,2) - robot_pose(2,0)) / w4;
+  double qz = (robot_pose(1,0) - robot_pose(0,1)) / w4;
+
+  geometry_msgs::PoseStamped msg;
+  msg.header.frame_id = "base_link";
+  msg.pose.position.x = x;
+  msg.pose.position.y = y;
+  msg.pose.position.z = z;
+  msg.pose.orientation.w = w4;
+  msg.pose.orientation.x = qx;
+  msg.pose.orientation.y = qy;
+  msg.pose.orientation.z = qz;
+
+  pose_pub.publish(msg);
+
+}
+
+void Transformation_EstimatorNodeHandler::publishFullPath(TFMatrix robot_pose)
+{
+  double x = static_cast<double>(robot_pose(0,3));
+  double y = static_cast<double>(robot_pose(1,3));
+  double z = static_cast<double>(robot_pose(2,3));
+
+  double qw = sqrt(1.0 + robot_pose(0,0) + robot_pose(1,1) + robot_pose(2,2)) / 2.0;
+  double w4 = 4.0 * qw ;
+  double qx = (robot_pose(2,1) - robot_pose(1,2)) / w4;
+  double qy = (robot_pose(0,2) - robot_pose(2,0)) / w4;
+  double qz = (robot_pose(1,0) - robot_pose(0,1)) / w4;
+
+  geometry_msgs::PoseStamped msg;
+  msg.header.frame_id = "base_link";
+  msg.pose.position.x = x;
+  msg.pose.position.y = y;
+  msg.pose.position.z = z;
+  msg.pose.orientation.w = w4;
+  msg.pose.orientation.x = qx;
+  msg.pose.orientation.y = qy;
+  msg.pose.orientation.z = qz;
+  fullPath.push_back(msg);
+
+  if(!fullPath.empty()){
+
+    nav_msgs::Path pathMsg ;
+    pathMsg.header.frame_id = "odom";
+    pathMsg.header.stamp = ros::Time::now();
+    pathMsg.poses.resize(fullPath.size());
+    for(int i=0; i < fullPath.size(); i++){
+      pathMsg.poses[i] = fullPath[i];
+    }
+    path_pub.publish(pathMsg);
+  }
 }
 
 int main(int argc, char** argv)
@@ -220,26 +304,29 @@ int main(int argc, char** argv)
   std::unique_ptr<Transformation_EstimatorNodeHandler> nh(new Transformation_EstimatorNodeHandler);
 
   std::vector<FrameData> Frames = readDataset();
-  Pose_6D robot_pose;
-  robot_pose.matrix() = Eigen::Matrix4f::Zero();
+  TFMatrix robot_pose;
+  robot_pose = TFMatrix::Identity();
   bool done = false;
-  int scenes_start = 0 , scenes_end = 30;
+  int scenes_start = 0 , scenes_end = 40;//Frames.size();
   int first_scn = scenes_start , second_scn = first_scn+1;
   for(int i = scenes_start ; i <= scenes_end ; i ++)
   {
     ROS_INFO("%i" , i);
     FrameData previousFrame = Frames[first_scn];
     FrameData currentFrame = Frames[second_scn];
-    Pose_6D tf;
-    tf.matrix() = Eigen::Matrix4f::Zero();
+    TFMatrix tf;
+    tf = TFMatrix::Zero();
 
     done = nh->estimateTransformBetween2Scenes(previousFrame,currentFrame,tf);
     first_scn++;
     second_scn++;
     if(done)
     {
-      robot_pose = tf * robot_pose;
-      nh->publishOnTF(robot_pose.matrix());
+      robot_pose = tf + robot_pose;
+      nh->publishOnTF(robot_pose);
+      nh->publishOdometry(robot_pose);
+      nh->publishPose(robot_pose);
+      nh->publishFullPath(robot_pose);
     }
   }
   return 0;
