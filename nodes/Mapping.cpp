@@ -1,48 +1,68 @@
 #include <ros/ros.h>
-#include <tf/transform_listener.h>
-#include <turtlesim/Velocity.h>
-#include <turtlesim/Spawn.h>
 
+#include <geometry_msgs/Pose.h>
+#include <eigen_conversions/eigen_msg.h>
+
+#include <visual_slam/definitions.h>
+#include <visual_slam/Map_Optimization/g2omapoptimizer.h>
 class MappingNodeHandler
 {
 public:
   MappingNodeHandler();
-  void startListen();
+  void OdometryCallback(const geometry_msgs::Pose::ConstPtr& msg);
+
 private:
-  tf::TransformListener listener;
   ros::NodeHandle node;
+  ros::Subscriber odom_sub;
+  std::unique_ptr<G2OMapOptimizer> mapOptimizer;
+  Pose_6D prevPose;
+  int prevNodeId;
+  short numberOfNode;
+  std::vector<int> NodeIds;
 
   void updateGraph();
+  void publishOptomizedPath();
 };
 
-void MappingNodeHandler::startListen()
+MappingNodeHandler::MappingNodeHandler()
 {
-  ros::Rate rate(10.0);
-  while (node.ok()){
-    tf::StampedTransform transform;
-    try{
-      listener.lookupTransform("/turtle2", "/turtle1",
-                               ros::Time(0), transform);
-      updateGraph();
-    }
-    catch (tf::TransformException ex){
-      ROS_ERROR("%s",ex.what());
-      ros::Duration(1.0).sleep();
-    }
+  odom_sub = node.subscribe("robot_pose",50,&MappingNodeHandler::OdometryCallback , this);
+  mapOptimizer = std::unique_ptr<G2OMapOptimizer>(new G2OMapOptimizer);
+  prevPose = Pose_6D::Identity();
+  mapOptimizer->addPoseToGraph(prevPose, prevNodeId);
+  numberOfNode = 0;
+  NodeIds.push_back(prevNodeId);
 }
+
+void MappingNodeHandler::OdometryCallback(const geometry_msgs::Pose::ConstPtr &msg)
+{
+  Pose_6D newPose ;
+  tf::poseMsgToEigen(*msg, newPose);
+  int newNodeId;
+  mapOptimizer->addPoseToGraph(newPose, newNodeId);
+  NodeIds.push_back(newNodeId);
+  mapOptimizer->addEdge(newPose ,newNodeId ,prevNodeId);
+  prevPose = newPose;
+  prevNodeId = newNodeId;
+  if(numberOfNode ==10)
+  {
+    numberOfNode = 0;
+    updateGraph();
+  }
+}
+
+void MappingNodeHandler::updateGraph()
+{
+  mapOptimizer->optimize();
+}
+
 int main(int argc, char** argv){
   ros::init(argc, argv, "Mapping");
 
-    turtlesim::Velocity vel_msg;
-    vel_msg.angular = 4.0 * atan2(transform.getOrigin().y(),
-                                transform.getOrigin().x());
-    vel_msg.linear = 0.5 * sqrt(pow(transform.getOrigin().x(), 2) +
-                                pow(transform.getOrigin().y(), 2));
-    turtle_vel.publish(vel_msg);
+  MappingNodeHandler handler;
 
-    rate.sleep();
-  }
-  return 0;
-};
+  ros::spin();
 
+    return 0;
+}
 

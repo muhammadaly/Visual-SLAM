@@ -322,7 +322,7 @@ int main(int argc, char** argv)
     second_scn++;
     if(done)
     {
-      robot_pose = tf + robot_pose;
+      robot_pose = tf * robot_pose;
       nh->publishOnTF(robot_pose);
       nh->publishOdometry(robot_pose);
       nh->publishPose(robot_pose);

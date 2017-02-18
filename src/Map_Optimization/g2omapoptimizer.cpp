@@ -59,4 +59,6 @@ void G2OMapOptimizer::addEdge(const Eigen::Isometry3d & a_T_b, const int id_a, c
 void G2OMapOptimizer::optimize()
 {
   graph->initializeOptimization();
+  graph->setVerbose(true);
+  graph->optimize(10);
 }

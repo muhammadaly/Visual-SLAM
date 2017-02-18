@@ -13,7 +13,7 @@ typedef pcl::Histogram<ORBFeatureVectorLength> FeatureT;
 typedef pcl::PointCloud<FeatureT> FeatureCloudT;
 typedef pcl::visualization::PointCloudColorHandlerCustom<PointT> ColorHandlerT;
 typedef Eigen::Matrix4f TFMatrix;
-typedef Eigen::Isometry3f Pose_6D;
+typedef Eigen::Isometry3d Pose_6D;
 
 static const float fx = 525.0;  // focal length x
 static const float fy = 525.0;  // focal length y
