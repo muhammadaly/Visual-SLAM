@@ -20,8 +20,8 @@
 #include <visual_slam/Feature_Matching/cvflannfeaturematcher.h>
 #include <visual_slam/Utilities/PCLUtilities.h>
 
-std::string machineName = "ivsystems";
-std::string datasetName = "rgbd_dataset_freiburg1_360";
+std::string machineName = "muhammadaly";
+std::string datasetName = "rgbd_dataset_freiburg1_xyz";
 std::string datasetDIR = "/home/"+machineName+"/master_dataset/"+datasetName+"/";
 std::string rgbImages = datasetDIR + "rgb/";
 std::string depthImages = datasetDIR + "depth/";
@@ -176,7 +176,7 @@ bool Transformation_EstimatorNodeHandler::estimateTransformBetween2Scenes(FrameD
 
   //  PointCloudT::Ptr currentScene = GeneratePointCloud(currentFrame.getDepthMatrix());
   //  PointCloudT::Ptr previousScene = GeneratePointCloud(currentFrame.getDepthMatrix());
-  //  visualizePointCloud(tPreviousKeypointsPC , tCurrentKeypointsPC,alignedPC);
+   // visualizePointCloud(tPreviousKeypointsPC , tCurrentKeypointsPC,alignedPC);
   //  visualizePointCloud(currentScene , tCurrentKeypointsPC);
   return done;
 }
@@ -307,7 +307,7 @@ int main(int argc, char** argv)
   TFMatrix robot_pose;
   robot_pose = TFMatrix::Identity();
   bool done = false;
-  int scenes_start = 0 , scenes_end = 40;//Frames.size();
+  int scenes_start = 0 , scenes_end = Frames.size();
   int first_scn = scenes_start , second_scn = first_scn+1;
   for(int i = scenes_start ; i <= scenes_end ; i ++)
   {
@@ -318,10 +318,10 @@ int main(int argc, char** argv)
     tf = TFMatrix::Zero();
 
     done = nh->estimateTransformBetween2Scenes(previousFrame,currentFrame,tf);
-    first_scn++;
     second_scn++;
     if(done)
     {
+      first_scn++;
       robot_pose = tf * robot_pose;
       nh->publishOnTF(robot_pose);
       nh->publishOdometry(robot_pose);
