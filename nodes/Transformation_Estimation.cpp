@@ -2,6 +2,8 @@
 #include <boost/scoped_ptr.hpp>
 
 #include "ros/ros.h"
+#include <eigen_conversions/eigen_msg.h>
+
 #include <tf/transform_broadcaster.h>
 #include <nav_msgs/Odometry.h>
 #include <nav_msgs/Path.h>
@@ -19,6 +21,11 @@
 #include <visual_slam/Feature_Extraction/CVORBFeatureExtractorAndDescriptor.h>
 #include <visual_slam/Feature_Matching/cvflannfeaturematcher.h>
 #include <visual_slam/Utilities/PCLUtilities.h>
+
+#include <visual_slam/definitions.h>
+#include <visual_slam/Map_Optimization/g2omapoptimizer.h>
+
+#include <visual_slam/definitions.h>
 
 std::string machineName = "muhammadaly";
 std::string datasetName = "rgbd_dataset_freiburg1_xyz";
@@ -125,11 +132,14 @@ class Transformation_EstimatorNodeHandler {
 public:
   Transformation_EstimatorNodeHandler();
   bool estimateTransformBetween2Scenes(FrameData previousFrame , FrameData currentFrame, TFMatrix& transformation);
+  int addToMap(Pose_6D newPose);
+  void detectLoopClosure(cv::Mat currentFeature, Pose_6D Pose, int nodeId);
 
   void publishOnTF(TFMatrix);
   void publishOdometry(TFMatrix);
   void publishPose(TFMatrix);
   void publishFullPath(TFMatrix);
+  cv::Mat currentSceneFeaturesDes;
 private:
   ros::NodeHandle _node;
 
@@ -143,6 +153,16 @@ private:
   ros::Publisher path_pub;
   tf::TransformBroadcaster br;
   std::vector<geometry_msgs::PoseStamped> fullPath;
+
+  std::unique_ptr<G2OMapOptimizer> mapOptimizer;
+  Pose_6D prevPose;
+  int prevNodeId;
+  short numberOfNode;
+  std::vector<int> NodeIds;
+  std::vector<std::pair<cv::Mat,int>> FeatureMap;
+  void updateGraph();
+  void publishOptomizedPath();
+  int searchForSimilerScene(cv::Mat);
 };
 
 
@@ -155,6 +175,12 @@ Transformation_EstimatorNodeHandler::Transformation_EstimatorNodeHandler()
   pose_pub = _node.advertise<geometry_msgs::PoseStamped>("robot_pose",50);
   path_pub = _node.advertise<nav_msgs::Path>("robot_path",50);
   fullPath.clear();
+
+  mapOptimizer = std::unique_ptr<G2OMapOptimizer>(new G2OMapOptimizer);
+  prevPose = Pose_6D::Identity();
+  mapOptimizer->addPoseToGraph(prevPose, prevNodeId);
+  numberOfNode = 0;
+  NodeIds.push_back(prevNodeId);
 }
 bool Transformation_EstimatorNodeHandler::estimateTransformBetween2Scenes(FrameData previousFrame, FrameData currentFrame, TFMatrix& transformation)
 {
@@ -167,6 +193,7 @@ bool Transformation_EstimatorNodeHandler::estimateTransformBetween2Scenes(FrameD
 
   featureExtractorAndDescriptor->computeDescriptors(previousFrame , tPreviousKeypoints , tPreviousDescriptors);
   featureExtractorAndDescriptor->computeDescriptors(currentFrame , tCurrentKeypoints , tCurrentDescriptors);
+  currentSceneFeaturesDes = tCurrentDescriptors;
   featureMatcher->matching2ImageFeatures(tPreviousDescriptors , tCurrentDescriptors,matches);
   pclUTL.getKeypointsAndDescriptors(matches,tPreviousKeypoints,tCurrentKeypoints,
                                     tPreviousDescriptors,tCurrentDescriptors,previousFrame,currentFrame,
@@ -297,6 +324,65 @@ void Transformation_EstimatorNodeHandler::publishFullPath(TFMatrix robot_pose)
   }
 }
 
+int Transformation_EstimatorNodeHandler::addToMap(Pose_6D newPose)
+{
+  int newNodeId;
+  mapOptimizer->addPoseToGraph(newPose, newNodeId);
+  NodeIds.push_back(newNodeId);
+  mapOptimizer->addEdge(newPose ,newNodeId ,prevNodeId);
+  prevPose = newPose;
+  prevNodeId = newNodeId;
+  if(numberOfNode ==10)
+  {
+    numberOfNode = 0;
+    updateGraph();
+  }
+  return newNodeId;
+}
+
+void Transformation_EstimatorNodeHandler::detectLoopClosure(cv::Mat currentFeature, Pose_6D Pose, int nodeId)
+{
+  if(FeatureMap.size()==0)
+  {
+    std::pair<cv::Mat,int> tmp;
+    tmp.first = currentFeature;
+    tmp.second = nodeId;
+  }
+  else
+  {
+    int sceneNumber = searchForSimilerScene(currentFeature);
+    if(sceneNumber > 0)
+    {
+      mapOptimizer->addEdge(Pose ,nodeId ,sceneNumber);
+    }
+    else
+    {
+      std::pair<cv::Mat,int> tmp;
+      tmp.first = currentFeature;
+      tmp.second = nodeId;
+    }
+  }
+}
+
+void Transformation_EstimatorNodeHandler::updateGraph()
+{
+  mapOptimizer->optimize();
+}
+
+int Transformation_EstimatorNodeHandler::searchForSimilerScene(cv::Mat pCurrentDescriptors)
+{
+  double threshold = 0.8;
+  for(int i = 0; i < FeatureMap.size() ; i++)
+  {
+    std::vector<cv::DMatch> matches;
+    featureMatcher->matching2ImageFeatures(FeatureMap[i].first , pCurrentDescriptors,matches);
+    if((matches.size() / pCurrentDescriptors.rows) > threshold)
+    {
+      return FeatureMap[i].second;
+    }
+  }
+  return -1;
+}
 int main(int argc, char** argv)
 {
   ros::init(argc, argv, "Transformation_Estimation_Node");
@@ -327,6 +413,10 @@ int main(int argc, char** argv)
       nh->publishOdometry(robot_pose);
       nh->publishPose(robot_pose);
       nh->publishFullPath(robot_pose);
+      Pose_6D tmp;
+//      tmp.matrix() = robot_pose;
+      int tmpNodeId = nh->addToMap(tmp);
+      nh->detectLoopClosure(nh->currentSceneFeaturesDes,tmp,tmpNodeId);
     }
   }
   return 0;

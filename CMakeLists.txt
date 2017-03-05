@@ -7,7 +7,8 @@ set(${PROJECT_NAME}_CATKIN_DEPS
     sensor_msgs
     pcl_conversions
     pcl_ros
-    std_msgs)
+    std_msgs
+    tf)
 set(CMAKE_BUILD_TYPE Debug)
 
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x -Wall")

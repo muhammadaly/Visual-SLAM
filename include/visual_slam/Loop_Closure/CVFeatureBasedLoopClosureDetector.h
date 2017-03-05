@@ -6,9 +6,11 @@
 
 class CVFeatureBasedLoopClosureDetector : public LoopClosureDetector
 {
-  public detectScene(cv::Mat);
+public :
+  void detectScene(cv::Mat,int);
 private:
-  std::vector<cv::Mat> FeaturesMap;
+  std::vector<std::pair<cv::Mat,int>> FeaturesMap;
+  std::unique_ptr<FeatureMatcher> featureMatcher;
 };
 
 #endif // CVFLANNFEATUREMATCHER_H
