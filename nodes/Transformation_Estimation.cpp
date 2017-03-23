@@ -54,7 +54,6 @@ PointCloudT::Ptr GeneratePointCloud(cv::Mat pImage)
     }
   return cloud;
 }
-
 void visualizePointCloud(PointCloudT::ConstPtr secondPC , PointCloudT::ConstPtr firstPC, PointCloudT::ConstPtr aligned)
 {
   pcl::visualization::PCLVisualizer visu("Point Cloud Visualizer");
@@ -414,7 +413,12 @@ int main(int argc, char** argv)
       nh->publishPose(robot_pose);
       nh->publishFullPath(robot_pose);
       Pose_6D tmp;
-//      tmp.matrix() = robot_pose;
+      Eigen::Matrix<double, 4, 4> tmpMat ;
+      for(int i = 0 ; i < 4  ; i ++)
+        for(int j = 0 ; j < 4  ; j ++)
+          tmpMat(i,j) = (double)robot_pose(i,j);
+      tmp.matrix() = tmpMat;
+
       int tmpNodeId = nh->addToMap(tmp);
       nh->detectLoopClosure(nh->currentSceneFeaturesDes,tmp,tmpNodeId);
     }
