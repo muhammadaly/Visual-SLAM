@@ -26,6 +26,7 @@
 #include <visual_slam/Map_Optimization/g2omapoptimizer.h>
 
 #include <visual_slam/definitions.h>
+#include <visual_slam/Scene.h>
 
 std::string machineName = "muhammadaly";
 std::string datasetName = "rgbd_dataset_freiburg1_xyz";

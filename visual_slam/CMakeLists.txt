@@ -8,7 +8,9 @@ set(${PROJECT_NAME}_CATKIN_DEPS
     pcl_conversions
     pcl_ros
     std_msgs
-    tf)
+#    cv_bridge
+    tf
+    )
 set(CMAKE_BUILD_TYPE Debug)
 
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x -Wall")
@@ -46,7 +48,13 @@ LIST(APPEND G2O_LIBS
   g2o_types_data g2o_types_sim3
 )
 
-catkin_package(CATKIN_DEPENDS ${${PROJECT_NAME}_CATKIN_DEPS})
+catkin_package(CATKIN_DEPENDS roscpp
+    pcl_ros
+    sensor_msgs
+    pcl_conversions
+    pcl_ros
+    std_msgs
+    tf)
 
 link_directories(${PCL_LIBRARY_DIRS} /usr/local/lib)
 add_definitions(${PCL_DEFINITIONS})
