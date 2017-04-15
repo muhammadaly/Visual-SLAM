@@ -49,20 +49,12 @@ void MappingNodeHandler::SceneDataCallback(const visual_slam_msgs::scene::ConstP
 {
   // add new node
   Pose_6D newPose ;
-  tf::poseMsgToEigen(msg->pose,newPose);
-  int newNodeId;
-  mapOptimizer->addPoseToGraph(newPose, newNodeId);
-  NodeIds.push_back(newNodeId);
-  mapOptimizer->addEdge(newPose ,newNodeId ,prevNodeId);
-  prevPose = newPose;
-  prevNodeId = newNodeId;
-  if(numberOfNode ==10)
-  {
-    numberOfNode = 0;
-    updateGraph();
-  }
-
-
+  tf::poseMsgToEigen(*msg, newPose);
+  
+  cv::Mat currentSceneFeaturesDes = 
+  
+  int tmpNodeId = addToMap(newPose);
+  detectLoopClosure(currentSceneFeaturesDes,tmp,tmpNodeId);
 }
 
 void MappingNodeHandler::detectLoopClosure(cv::Mat currentFeature, Pose_6D Pose, int nodeId)

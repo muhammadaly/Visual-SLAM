@@ -8,7 +8,8 @@ set(${PROJECT_NAME}_CATKIN_DEPS
     pcl_conversions
     pcl_ros
     std_msgs
-#    cv_bridge
+    eigen_conversions
+    cv_bridge
     tf
     )
 set(CMAKE_BUILD_TYPE Debug)
@@ -52,6 +53,8 @@ catkin_package(CATKIN_DEPENDS roscpp
     pcl_ros
     sensor_msgs
     pcl_conversions
+    eigen_conversions
+    cv_bridge
     pcl_ros
     std_msgs
     tf)
@@ -61,7 +64,6 @@ add_definitions(${PCL_DEFINITIONS})
 
 set(SOURCES src/framedata.cpp
     src/Feature_Extraction/CVORBFeatureExtractorAndDescriptor.cpp
-#    src/Feature_Extraction/CVSIFTFeatureExtractorAndDescriptor.cpp
     src/Feature_Extraction/pclfeaturedescriptor.cpp
     src/Feature_Extraction/pclfeatureextraction.cpp
     src/Transformation_Estimation/TransformationEstimator.cpp
@@ -76,7 +78,6 @@ set(SOURCES src/framedata.cpp
 set(HEADERS include/visual_slam/framedata.h
     include/visual_slam/Feature_Extraction/FeatureExtractorAndDescriptor.h
     include/visual_slam/Feature_Extraction/CVORBFeatureExtractorAndDescriptor.h
-#    include/visual_slam/Feature_Extraction/CVSIFTFeatureExtractorAndDescriptor.h
     include/visual_slam/Feature_Extraction/pclfeaturedescriptor.h
     include/visual_slam/Feature_Extraction/pclfeatureextraction.h
     include/visual_slam/Transformation_Estimation/TransformationEstimator.h
@@ -103,6 +104,9 @@ set(HEADERS include/visual_slam/framedata.h
 add_executable(Transformation_Estimation nodes/Transformation_Estimation.cpp ${SOURCES} ${HEADERS})
 target_link_libraries(Transformation_Estimation ${catkin_LIBRARIES} ${OpenCV_LIBS} ${PCL_LIBRARIES} ${G2O_LIBS})
 #------------------------------------------------------
-add_executable(ba_demo nodes/ba_demo.cpp ${SOURCES} ${HEADERS})
-target_link_libraries(ba_demo ${catkin_LIBRARIES} ${OpenCV_LIBS} ${PCL_LIBRARIES} ${G2O_LIBS})
+add_executable(Mapping nodes/Mapping.cpp ${SOURCES} ${HEADERS})
+target_link_libraries(Mapping ${catkin_LIBRARIES} ${OpenCV_LIBS} ${PCL_LIBRARIES} ${G2O_LIBS})
 #------------------------------------------------------
+#add_executable(ba_demo nodes/ba_demo.cpp ${SOURCES} ${HEADERS})
+#target_link_libraries(ba_demo ${catkin_LIBRARIES} ${OpenCV_LIBS} ${PCL_LIBRARIES} ${G2O_LIBS})
+##------------------------------------------------------
