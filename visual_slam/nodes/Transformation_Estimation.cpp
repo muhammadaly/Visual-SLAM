@@ -10,6 +10,8 @@
 #include <geometry_msgs/PoseStamped.h>
 #include <geometry_msgs/Pose.h>
 #include <pcl_conversions/pcl_conversions.h>
+#include <cv_bridge/cv_bridge.h>
+#include <sensor_msgs/image_encodings.h>
 
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
@@ -26,7 +28,7 @@
 #include <visual_slam/Map_Optimization/g2omapoptimizer.h>
 
 #include <visual_slam/definitions.h>
-#include <visual_slam/Scene.h>
+#include <visual_slam_msgs/scene.h>
 
 std::string machineName = "muhammadaly";
 std::string datasetName = "rgbd_dataset_freiburg1_xyz";
@@ -151,6 +153,7 @@ private:
   ros::Publisher odom_pub ;
   ros::Publisher pose_pub;
   ros::Publisher path_pub;
+  ros::Publisher scene_pub;
   tf::TransformBroadcaster br;
   std::vector<geometry_msgs::PoseStamped> fullPath;
 
@@ -163,6 +166,7 @@ private:
   void updateGraph();
   void publishOptomizedPath();
   int searchForSimilerScene(cv::Mat);
+  Pose_6D convertToPose(TFMatrix);
 };
 
 
@@ -174,6 +178,7 @@ Transformation_EstimatorNodeHandler::Transformation_EstimatorNodeHandler()
   odom_pub = _node.advertise<nav_msgs::Odometry>("odom", 50);
   pose_pub = _node.advertise<geometry_msgs::PoseStamped>("robot_pose",50);
   path_pub = _node.advertise<nav_msgs::Path>("robot_path",50);
+  scene_pub = _node.advertise<visual_slam_msgs::scene>("scene_data",50);
   fullPath.clear();
 
   mapOptimizer = std::unique_ptr<G2OMapOptimizer>(new G2OMapOptimizer);
@@ -201,9 +206,24 @@ bool Transformation_EstimatorNodeHandler::estimateTransformBetween2Scenes(FrameD
                                     tPreviousDescriptorsPC,tCurrentDescriptorsPC);
   done = tfEstimator->estimateTransformation(tPreviousKeypointsPC,tPreviousDescriptorsPC,tCurrentKeypointsPC,tCurrentDescriptorsPC,transformation,alignedPC);
 
+  visual_slam_msgs::scene msg;
+  geometry_msgs::Pose pose;
+  Pose_6D p = convertToPose(transformation);
+  tf::poseEigenToMsg(p,pose);
+  msg.pose = pose;
+  cv_bridge::CvImage out_msg;
+  //  out_msg.header   = in_msg->header; // Same timestamp and tf frame as input image
+  out_msg.encoding = sensor_msgs::image_encodings::TYPE_32FC1; // Or whatever
+  out_msg.image    = tCurrentDescriptors; // Your cv::Mat
+  msg.features = *out_msg.toImageMsg();
+  scene_pub.publish(msg);
+  //  saliency_img_pub.publish();
+
+  //  msg.features = tCurrentDescriptors;
+
   //  PointCloudT::Ptr currentScene = GeneratePointCloud(currentFrame.getDepthMatrix());
   //  PointCloudT::Ptr previousScene = GeneratePointCloud(currentFrame.getDepthMatrix());
-   // visualizePointCloud(tPreviousKeypointsPC , tCurrentKeypointsPC,alignedPC);
+  // visualizePointCloud(tPreviousKeypointsPC , tCurrentKeypointsPC,alignedPC);
   //  visualizePointCloud(currentScene , tCurrentKeypointsPC);
   return done;
 }
@@ -383,6 +403,17 @@ int Transformation_EstimatorNodeHandler::searchForSimilerScene(cv::Mat pCurrentD
   }
   return -1;
 }
+
+Pose_6D Transformation_EstimatorNodeHandler::convertToPose(TFMatrix transformation)
+{
+  Pose_6D tmp;
+  Eigen::Matrix<double, 4, 4> tmpMat ;
+  for(int i = 0 ; i < 4  ; i ++)
+    for(int j = 0 ; j < 4  ; j ++)
+      tmpMat(i,j) = (double)transformation(i,j);
+  tmp.matrix() = tmpMat;
+  return tmp;
+}
 int main(int argc, char** argv)
 {
   ros::init(argc, argv, "Transformation_Estimation_Node");
@@ -409,19 +440,19 @@ int main(int argc, char** argv)
     {
       first_scn++;
       robot_pose = tf * robot_pose;
-      nh->publishOnTF(robot_pose);
-      nh->publishOdometry(robot_pose);
-      nh->publishPose(robot_pose);
-      nh->publishFullPath(robot_pose);
-      Pose_6D tmp;
-      Eigen::Matrix<double, 4, 4> tmpMat ;
-      for(int i = 0 ; i < 4  ; i ++)
-        for(int j = 0 ; j < 4  ; j ++)
-          tmpMat(i,j) = (double)robot_pose(i,j);
-      tmp.matrix() = tmpMat;
+      //      nh->publishOnTF(robot_pose);
+      //      nh->publishOdometry(robot_pose);
+      //      nh->publishPose(robot_pose);
+      //      nh->publishFullPath(robot_pose);
+      //      Pose_6D tmp;
+      //      Eigen::Matrix<double, 4, 4> tmpMat ;
+      //      for(int i = 0 ; i < 4  ; i ++)
+      //        for(int j = 0 ; j < 4  ; j ++)
+      //          tmpMat(i,j) = (double)robot_pose(i,j);
+      //      tmp.matrix() = tmpMat;
 
-      int tmpNodeId = nh->addToMap(tmp);
-      nh->detectLoopClosure(nh->currentSceneFeaturesDes,tmp,tmpNodeId);
+//            int tmpNodeId = nh->addToMap(tmp);
+//            nh->detectLoopClosure(nh->currentSceneFeaturesDes,tmp,tmpNodeId);
     }
   }
   return 0;
