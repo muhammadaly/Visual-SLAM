@@ -212,7 +212,7 @@ bool Transformation_EstimatorNodeHandler::estimateTransformBetween2Scenes(FrameD
   tf::poseEigenToMsg(p,pose);
   msg.pose = pose;
   cv_bridge::CvImage out_msg;
-  //  out_msg.header   = in_msg->header; // Same timestamp and tf frame as input image
+//  out_msg.header.time = ros::Time::now(); // Same timestamp and tf frame as input image
   out_msg.encoding = sensor_msgs::image_encodings::TYPE_32FC1; // Or whatever
   out_msg.image    = tCurrentDescriptors; // Your cv::Mat
   msg.features = *out_msg.toImageMsg();
