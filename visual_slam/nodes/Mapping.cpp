@@ -1,15 +1,35 @@
-#include <ros/ros.h>
+#include <memory>
+#include <boost/scoped_ptr.hpp>
 
-#include <geometry_msgs/Pose.h>
+#include "ros/ros.h"
 #include <eigen_conversions/eigen_msg.h>
-#include <visual_slam_msgs/scene.h>
+
+#include <tf/transform_broadcaster.h>
+#include <nav_msgs/Odometry.h>
+#include <nav_msgs/Path.h>
+#include <geometry_msgs/PoseStamped.h>
+#include <geometry_msgs/Pose.h>
+#include <pcl_conversions/pcl_conversions.h>
+#include <cv_bridge/cv_bridge.h>
+#include <sensor_msgs/image_encodings.h>
+
+#include <pcl/point_cloud.h>
+#include <pcl/point_types.h>
+#include <pcl/visualization/pcl_visualizer.h>
+
+#include <visual_slam/Transformation_Estimation/TransformationEstimator.h>
+#include <visual_slam/Transformation_Estimation/PCL3DRANSACTransformationEstimator.h>
+#include <visual_slam/framedata.h>
+#include <visual_slam/Feature_Extraction/CVORBFeatureExtractorAndDescriptor.h>
+#include <visual_slam/Feature_Matching/cvflannfeaturematcher.h>
+#include <visual_slam/Utilities/PCLUtilities.h>
 
 #include <visual_slam/definitions.h>
 #include <visual_slam/Map_Optimization/g2omapoptimizer.h>
-#include <visual_slam/Feature_Matching/cvflannfeaturematcher.h>
 
-#include <opencv2/core/core.hpp>
-#include <cv_bridge/cv_bridge.h>
+#include <visual_slam/definitions.h>
+#include <visual_slam_msgs/scene.h>
+
 class MappingNodeHandler
 {
 public:
