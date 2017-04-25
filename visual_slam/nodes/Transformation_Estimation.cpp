@@ -30,8 +30,8 @@
 #include <visual_slam/definitions.h>
 #include <visual_slam_msgs/scene.h>
 
-std::string machineName = "muhammadaly";
-std::string datasetName = "rgbd_dataset_freiburg1_xyz";
+std::string machineName = "ivsystems";
+std::string datasetName = "rgbd_dataset_freiburg1_desk2";
 std::string datasetDIR = "/home/"+machineName+"/master_dataset/"+datasetName+"/";
 std::string rgbImages = datasetDIR + "rgb/";
 std::string depthImages = datasetDIR + "depth/";
@@ -79,6 +79,7 @@ std::vector<FrameData> readDataset()
   char * pch;
   std::vector<std::string> depthFiles , rgbFiles ;
   std::ifstream myfile (frames_matching.c_str());
+
   if (myfile.is_open())
   {
     while ( std::getline(myfile,line) )
@@ -105,10 +106,16 @@ std::vector<FrameData> readDataset()
     {
       cv::Mat image = cv::imread((rgbImages+rgbFiles[i]).c_str());
       cv::Mat Dimage = cv::imread((depthImages+depthFiles[i]).c_str(),CV_LOAD_IMAGE_ANYDEPTH | CV_LOAD_IMAGE_ANYCOLOR);
-      Dimage.convertTo(Dimage , CV_16U);
+      ROS_INFO("image rows %i" , image.rows);
+      ROS_INFO((depthImages+depthFiles[i]).c_str());
       if(image.data && Dimage.data)
+      {
+        Dimage.convertTo(Dimage , CV_16U);
         frames.push_back(FrameData(image , (depthImages+depthFiles[i]).c_str() ,Dimage));
+      }
+
     }
+
     myfile.close();
 
   }
@@ -418,9 +425,12 @@ int main(int argc, char** argv)
 {
   ros::init(argc, argv, "Transformation_Estimation_Node");
 
+  std::vector<FrameData> Frames = readDataset();
+  ROS_INFO(" size %i" , (int)Frames.size());
+
   std::unique_ptr<Transformation_EstimatorNodeHandler> nh(new Transformation_EstimatorNodeHandler);
 
-  std::vector<FrameData> Frames = readDataset();
+  ROS_INFO("Reading dataset done!");
   TFMatrix robot_pose;
   robot_pose = TFMatrix::Identity();
   bool done = false;
@@ -440,19 +450,6 @@ int main(int argc, char** argv)
     {
       first_scn++;
       robot_pose = tf * robot_pose;
-      //      nh->publishOnTF(robot_pose);
-      //      nh->publishOdometry(robot_pose);
-      //      nh->publishPose(robot_pose);
-      //      nh->publishFullPath(robot_pose);
-      //      Pose_6D tmp;
-      //      Eigen::Matrix<double, 4, 4> tmpMat ;
-      //      for(int i = 0 ; i < 4  ; i ++)
-      //        for(int j = 0 ; j < 4  ; j ++)
-      //          tmpMat(i,j) = (double)robot_pose(i,j);
-      //      tmp.matrix() = tmpMat;
-
-//            int tmpNodeId = nh->addToMap(tmp);
-//            nh->detectLoopClosure(nh->currentSceneFeaturesDes,tmp,tmpNodeId);
     }
   }
   return 0;
