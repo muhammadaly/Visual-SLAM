@@ -110,7 +110,7 @@ std::vector<FrameData> readDataset()
       ROS_INFO((depthImages+depthFiles[i]).c_str());
       if(image.data && Dimage.data)
       {
-        Dimage.convertTo(Dimage , CV_16U);
+//        Dimage.convertTo(Dimage , CV_16U);
         frames.push_back(FrameData(image , (depthImages+depthFiles[i]).c_str() ,Dimage));
       }
 
