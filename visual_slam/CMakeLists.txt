@@ -9,9 +9,7 @@ set(${PROJECT_NAME}_CATKIN_DEPS
     pcl_ros
     std_msgs
     eigen_conversions
-    cv_bridge
-    tf
-    )
+    tf)
 set(CMAKE_BUILD_TYPE Debug)
 
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x -Wall")
@@ -54,7 +52,6 @@ catkin_package(CATKIN_DEPENDS roscpp
     sensor_msgs
     pcl_conversions
     eigen_conversions
-    cv_bridge
     pcl_ros
     std_msgs
     tf)

@@ -135,9 +135,9 @@ void showMatchingImage(std::vector<cv::DMatch> good_matches
   cv::waitKey(0);
 }
 
-class Transformation_EstimatorNodeHandler {
+class Trajectory_EstimationNodeHandler {
 public:
-  Transformation_EstimatorNodeHandler();
+  Trajectory_EstimationNodeHandler();
   bool estimateTransformBetween2Scenes(FrameData previousFrame , FrameData currentFrame, TFMatrix& transformation);
   int addToMap(Pose_6D newPose);
   void detectLoopClosure(cv::Mat currentFeature, Pose_6D Pose, int nodeId);
@@ -175,7 +175,7 @@ private:
 };
 
 
-Transformation_EstimatorNodeHandler::Transformation_EstimatorNodeHandler()
+Trajectory_EstimationNodeHandler::Trajectory_EstimationNodeHandler()
 {
   tfEstimator = std::unique_ptr<PCL3DRANSACTransformationEstimator>(new PCL3DRANSACTransformationEstimator);
   featureExtractorAndDescriptor = std::unique_ptr<CVORBFeatureExtractorAndDescriptor>(new CVORBFeatureExtractorAndDescriptor);
@@ -192,7 +192,7 @@ Transformation_EstimatorNodeHandler::Transformation_EstimatorNodeHandler()
   numberOfNode = 0;
   NodeIds.push_back(prevNodeId);
 }
-bool Transformation_EstimatorNodeHandler::estimateTransformBetween2Scenes(FrameData previousFrame, FrameData currentFrame, TFMatrix& transformation)
+bool Trajectory_EstimationNodeHandler::estimateTransformBetween2Scenes(FrameData previousFrame, FrameData currentFrame, TFMatrix& transformation)
 {
   std::vector<cv::KeyPoint> tPreviousKeypoints , tCurrentKeypoints ;
   bool done = false;
@@ -210,30 +210,10 @@ bool Transformation_EstimatorNodeHandler::estimateTransformBetween2Scenes(FrameD
                                     tPreviousKeypointsPC,tCurrentKeypointsPC,
                                     tPreviousDescriptorsPC,tCurrentDescriptorsPC);
   done = tfEstimator->estimateTransformation(tPreviousKeypointsPC,tPreviousDescriptorsPC,tCurrentKeypointsPC,tCurrentDescriptorsPC,transformation,alignedPC);
-
-  visual_slam_msgs::scene msg;
-  geometry_msgs::Pose pose;
-  Pose_6D p = convertToPose(transformation);
-  tf::poseEigenToMsg(p,pose);
-  msg.pose = pose;
-  cv_bridge::CvImage out_msg;
-//  out_msg.header.time = ros::Time::now(); // Same timestamp and tf frame as input image
-  out_msg.encoding = sensor_msgs::image_encodings::TYPE_32FC1; // Or whatever
-  out_msg.image    = tCurrentDescriptors; // Your cv::Mat
-  msg.features = *out_msg.toImageMsg();
-  scene_pub.publish(msg);
-  //  saliency_img_pub.publish();
-
-  //  msg.features = tCurrentDescriptors;
-
-  //  PointCloudT::Ptr currentScene = GeneratePointCloud(currentFrame.getDepthMatrix());
-  //  PointCloudT::Ptr previousScene = GeneratePointCloud(currentFrame.getDepthMatrix());
-  // visualizePointCloud(tPreviousKeypointsPC , tCurrentKeypointsPC,alignedPC);
-  //  visualizePointCloud(currentScene , tCurrentKeypointsPC);
   return done;
 }
 
-void Transformation_EstimatorNodeHandler::publishOnTF(TFMatrix transformation)
+void Trajectory_EstimationNodeHandler::publishOnTF(TFMatrix transformation)
 {
   double x = static_cast<double>(transformation(0,3));
   double y = static_cast<double>(transformation(1,3));
@@ -255,7 +235,7 @@ void Transformation_EstimatorNodeHandler::publishOnTF(TFMatrix transformation)
   transform.setRotation(tfqt);
   br.sendTransform(tf::StampedTransform(transform, ros::Time::now(), "odom", "base_link"));
 }
-void Transformation_EstimatorNodeHandler::publishOdometry(TFMatrix robot_pose)
+void Trajectory_EstimationNodeHandler::publishOdometry(TFMatrix robot_pose)
 {
   double x = static_cast<double>(robot_pose(0,3));
   double y = static_cast<double>(robot_pose(1,3));
@@ -287,7 +267,7 @@ void Transformation_EstimatorNodeHandler::publishOdometry(TFMatrix robot_pose)
   odom_pub.publish(odom);
 }
 
-void Transformation_EstimatorNodeHandler::publishPose(TFMatrix robot_pose)
+void Trajectory_EstimationNodeHandler::publishPose(TFMatrix robot_pose)
 {
   double x = static_cast<double>(robot_pose(0,3));
   double y = static_cast<double>(robot_pose(1,3));
@@ -313,7 +293,7 @@ void Transformation_EstimatorNodeHandler::publishPose(TFMatrix robot_pose)
 
 }
 
-void Transformation_EstimatorNodeHandler::publishFullPath(TFMatrix robot_pose)
+void Trajectory_EstimationNodeHandler::publishFullPath(TFMatrix robot_pose)
 {
   double x = static_cast<double>(robot_pose(0,3));
   double y = static_cast<double>(robot_pose(1,3));
@@ -349,7 +329,7 @@ void Transformation_EstimatorNodeHandler::publishFullPath(TFMatrix robot_pose)
   }
 }
 
-int Transformation_EstimatorNodeHandler::addToMap(Pose_6D newPose)
+int Trajectory_EstimationNodeHandler::addToMap(Pose_6D newPose)
 {
   int newNodeId;
   mapOptimizer->addPoseToGraph(newPose, newNodeId);
@@ -365,7 +345,7 @@ int Transformation_EstimatorNodeHandler::addToMap(Pose_6D newPose)
   return newNodeId;
 }
 
-void Transformation_EstimatorNodeHandler::detectLoopClosure(cv::Mat currentFeature, Pose_6D Pose, int nodeId)
+void Trajectory_EstimationNodeHandler::detectLoopClosure(cv::Mat currentFeature, Pose_6D Pose, int nodeId)
 {
   if(FeatureMap.size()==0)
   {
@@ -389,12 +369,12 @@ void Transformation_EstimatorNodeHandler::detectLoopClosure(cv::Mat currentFeatu
   }
 }
 
-void Transformation_EstimatorNodeHandler::updateGraph()
+void Trajectory_EstimationNodeHandler::updateGraph()
 {
   mapOptimizer->optimize();
 }
 
-int Transformation_EstimatorNodeHandler::searchForSimilerScene(cv::Mat pCurrentDescriptors)
+int Trajectory_EstimationNodeHandler::searchForSimilerScene(cv::Mat pCurrentDescriptors)
 {
   double threshold = 0.8;
   for(int i = 0; i < FeatureMap.size() ; i++)
@@ -409,7 +389,7 @@ int Transformation_EstimatorNodeHandler::searchForSimilerScene(cv::Mat pCurrentD
   return -1;
 }
 
-Pose_6D Transformation_EstimatorNodeHandler::convertToPose(TFMatrix transformation)
+Pose_6D Trajectory_EstimationNodeHandler::convertToPose(TFMatrix transformation)
 {
   Pose_6D tmp;
   Eigen::Matrix<double, 4, 4> tmpMat ;
@@ -426,7 +406,7 @@ int main(int argc, char** argv)
   std::vector<FrameData> Frames = readDataset();
   ROS_INFO(" size %i" , (int)Frames.size());
 
-  std::unique_ptr<Transformation_EstimatorNodeHandler> nh(new Transformation_EstimatorNodeHandler);
+  std::unique_ptr<Trajectory_EstimationNodeHandler> nh(new Trajectory_EstimationNodeHandler);
 
   ROS_INFO("Reading dataset done!");
   TFMatrix robot_pose;
