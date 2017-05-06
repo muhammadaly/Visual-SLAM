@@ -98,9 +98,12 @@ set(HEADERS include/visual_slam/framedata.h
 #add_executable(Feature_Ext_Mat src/Feature_Ext_Mat.cpp ${SOURCES} ${HEADERS})
 #target_link_libraries(Feature_Ext_Mat ${catkin_LIBRARIES} ${OpenCV_LIBS} ${PCL_LIBRARIES})
 #------------------------------------------------------
-add_executable(Transformation_Estimation src/Transformation_Estimation.cpp ${SOURCES} ${HEADERS})
-target_link_libraries(Transformation_Estimation ${catkin_LIBRARIES} ${OpenCV_LIBS} ${PCL_LIBRARIES} ${G2O_LIBS})
-#------------------------------------------------------
-add_executable(Mapping src/Mapping.cpp ${SOURCES} ${HEADERS})
-target_link_libraries(Mapping ${catkin_LIBRARIES} ${OpenCV_LIBS} ${PCL_LIBRARIES} ${G2O_LIBS})
+#add_executable(Transformation_Estimation src/Trajectory_Estimation.cpp ${SOURCES} ${HEADERS})
+#target_link_libraries(Transformation_Estimation ${catkin_LIBRARIES} ${OpenCV_LIBS} ${PCL_LIBRARIES} ${G2O_LIBS})
 ##------------------------------------------------------
+#add_executable(Mapping src/Mapping.cpp ${SOURCES} ${HEADERS})
+#target_link_libraries(Mapping ${catkin_LIBRARIES} ${OpenCV_LIBS} ${PCL_LIBRARIES} ${G2O_LIBS})
+###------------------------------------------------------
+add_executable(Trajectory_Estimation src/Trajectory_Estimation.cpp ${SOURCES} ${HEADERS})
+target_link_libraries(Trajectory_Estimation ${catkin_LIBRARIES} ${OpenCV_LIBS} ${PCL_LIBRARIES} ${G2O_LIBS})
+#------------------------------------------------------
