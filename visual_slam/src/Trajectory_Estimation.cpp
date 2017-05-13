@@ -119,7 +119,6 @@ std::vector<FrameData> readDataset()
   }
   return frames;
 }
-
 void showMatchingImage(std::vector<cv::DMatch> good_matches
                        , std::vector<cv::KeyPoint> currentImageKeypoints , std::vector<cv::KeyPoint> previousImageKeypoints
                        , FrameData currentFrame, FrameData previousFrame)
@@ -173,7 +172,6 @@ private:
   Pose_6D convertToPose(TFMatrix);
 };
 
-
 Trajectory_EstimationNodeHandler::Trajectory_EstimationNodeHandler(std::vector<FrameData> pFrames)
 {
   Frames = pFrames;
@@ -190,7 +188,6 @@ Trajectory_EstimationNodeHandler::Trajectory_EstimationNodeHandler(std::vector<F
   mapOptimizer->addPoseToGraph(prevPose, prevNodeId);
   numberOfNode = 0;
 }
-
 void Trajectory_EstimationNodeHandler::process()
 {
   TFMatrix robot_pose = TFMatrix::Identity();
@@ -218,8 +215,6 @@ void Trajectory_EstimationNodeHandler::process()
 }
 bool Trajectory_EstimationNodeHandler::estimateTransformBetween2Scenes(int previousFrameId, int currentFrameId, TFMatrix& transformation)
 {
-  FrameData previousFrame = Frames[previousFrameId];
-  FrameData currentFrame = Frames[currentFrameId];
   std::vector<cv::KeyPoint> tPreviousKeypoints , tCurrentKeypoints ;
   bool done = false;
   std::vector<cv::DMatch> matches;
@@ -227,14 +222,14 @@ bool Trajectory_EstimationNodeHandler::estimateTransformBetween2Scenes(int previ
   PointCloudT::Ptr tCurrentKeypointsPC (new PointCloudT),tPreviousKeypointsPC (new PointCloudT) , alignedPC(new PointCloudT);
   FeatureCloudT::Ptr tCurrentDescriptorsPC (new FeatureCloudT),tPreviousDescriptorsPC (new FeatureCloudT);
 
-  featureExtractorAndDescriptor->computeDescriptors(previousFrame , tPreviousKeypoints , tPreviousDescriptors);
-  featureExtractorAndDescriptor->computeDescriptors(currentFrame , tCurrentKeypoints , tCurrentDescriptors);
+  featureExtractorAndDescriptor->computeDescriptors(Frames[previousFrameId] , tPreviousKeypoints , tPreviousDescriptors);
+  featureExtractorAndDescriptor->computeDescriptors(Frames[currentFrameId] , tCurrentKeypoints , tCurrentDescriptors);
   Frames[previousFrameId].setSceneFeatureDescriptors(tPreviousDescriptors);
   Frames[currentFrameId].setSceneFeatureDescriptors(tCurrentDescriptors);
 
   featureMatcher->matching2ImageFeatures(tPreviousDescriptors , tCurrentDescriptors,matches);
   pclUTL.getKeypointsAndDescriptors(matches,tPreviousKeypoints,tCurrentKeypoints,
-                                    tPreviousDescriptors,tCurrentDescriptors,previousFrame,currentFrame,
+                                    tPreviousDescriptors,tCurrentDescriptors,Frames[previousFrameId],Frames[currentFrameId],
                                     tPreviousKeypointsPC,tCurrentKeypointsPC,
                                     tPreviousDescriptorsPC,tCurrentDescriptorsPC);
   done = tfEstimator->estimateTransformation(tPreviousKeypointsPC,tPreviousDescriptorsPC,tCurrentKeypointsPC,tCurrentDescriptorsPC,transformation,alignedPC);
