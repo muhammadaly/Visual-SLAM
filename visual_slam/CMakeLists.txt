@@ -68,6 +68,7 @@ set(SOURCES src/framedata.cpp
     src/Feature_Matching/cvflannfeaturematcher.cpp
     src/Feature_Matching/FeatureMatcher.cpp
     src/Utilities/PCLUtilities.cpp
+    src/Utilities/LogFile.cpp
     src/custom_types/vertex_pose.cpp
     src/custom_types/edge_pose_pose.cpp
     src/Map_Optimization/g2omapoptimizer.cpp)
@@ -82,6 +83,7 @@ set(HEADERS include/visual_slam/framedata.h
     include/visual_slam/Feature_Matching/cvflannfeaturematcher.h
     include/visual_slam/Feature_Matching/FeatureMatcher.h
     include/visual_slam/Utilities/PCLUtilities.h
+    include/visual_slam/Utilities/LogFile.h
     include/visual_slam/custom_types/vertex_pose.h
     include/visual_slam/custom_types/edge_pose_pose.h
     include/visual_slam/Map_Optimization/g2omapoptimizer.h)
