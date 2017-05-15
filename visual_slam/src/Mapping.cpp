@@ -72,7 +72,6 @@ void MappingNodeHandler::OdometryCallback(const geometry_msgs::Pose::ConstPtr &m
 {
 
 }
-
 void MappingNodeHandler::SceneDataCallback(const visual_slam_msgs::scene::ConstPtr &msg)
 {
   // add new node
@@ -85,7 +84,6 @@ void MappingNodeHandler::SceneDataCallback(const visual_slam_msgs::scene::ConstP
   addToMap(newPose);
   detectLoopClosure(currentSceneFeaturesDes,prevPose,prevNodeId);
 }
-
 void MappingNodeHandler::detectLoopClosure(cv::Mat currentFeature, Pose_6D Pose, int nodeId)
 {
   if(FeatureMap.size()==0)
@@ -124,7 +122,6 @@ int MappingNodeHandler::addToMap(Pose_6D newPose)
   }
   return newNodeId;
 }
-
 int MappingNodeHandler::searchForSimilerScene(cv::Mat pCurrentDescriptors)
 {
   double threshold = 0.8;

@@ -42,3 +42,33 @@ cv::Mat FrameData::getDepthMatrix() const
 {
     return _depthMatrix;
 }
+
+void FrameData::setSceneFeatureDescriptors(cv::Mat pSceneFeatureDescriptors)
+{
+  SceneFeatureDescriptors = pSceneFeatureDescriptors;
+}
+
+cv::Mat FrameData::getSceneFeatureDescriptors() const
+{
+  return SceneFeatureDescriptors;
+}
+
+int FrameData::getGraphNodeId() const
+{
+  return GraphNodeId;
+}
+
+void FrameData::setGraphNodeId(int pGraphNodeId)
+{
+  GraphNodeId = pGraphNodeId;
+}
+
+TFMatrix FrameData::getRobotPose() const
+{
+  return RobotPose;
+}
+
+void FrameData::setRobotPose(TFMatrix pRobotPose)
+{
+  RobotPose = pRobotPose;
+}
