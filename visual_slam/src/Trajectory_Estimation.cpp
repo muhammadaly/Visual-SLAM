@@ -137,16 +137,17 @@ void showMatchingImage(std::vector<cv::DMatch> good_matches
 class Trajectory_EstimationNodeHandler {
 public:
   Trajectory_EstimationNodeHandler(std::vector<FrameData>);
-  bool estimateTransformBetween2Scenes(FrameData previousFrame , FrameData currentFrame, TFMatrix& transformation);
-  void addToMap(Pose_6D newPose);
-  void detectLoopClosure(cv::Mat currentFeature, Pose_6D Pose, int nodeId);
+  bool estimateTransformBetween2Scenes(int previousFrameId, int currentFrameId, TFMatrix& transformation);
+  void process();
+  void addToMap(Pose_6D newPose, int previousSceneInd, int currentSceneInd);
+  void detectLoopClosure(int);
 
   void publishOnTF(TFMatrix);
   void publishOdometry(TFMatrix);
   void publishPose(TFMatrix);
   void publishFullPath(TFMatrix);
 
-  void map(TFMatrix robot_pose);
+  void map(TFMatrix robot_pose, int previousSceneInd, int currentSceneInd);
 
 private:
   ros::NodeHandle _node;
@@ -185,7 +186,6 @@ Trajectory_EstimationNodeHandler::Trajectory_EstimationNodeHandler(std::vector<F
   fullPath.clear();
 
   mapOptimizer = std::unique_ptr<G2OMapOptimizer>(new G2OMapOptimizer);
-  mapOptimizer->addPoseToGraph(prevPose, prevNodeId);
   numberOfNode = 0;
 }
 void Trajectory_EstimationNodeHandler::process()
@@ -208,8 +208,8 @@ void Trajectory_EstimationNodeHandler::process()
       first_scn++;
       second_scn = first_scn + 1;
       robot_pose = tf * robot_pose;
-      Frames[second_scn].setPose(robot_pose);
-      nh->map(robot_pose, first_scn, second_scn);
+      Frames[second_scn].setRobotPose(robot_pose);
+      map(robot_pose, first_scn, second_scn);
     }
   }
 }
@@ -359,42 +359,28 @@ Pose_6D Trajectory_EstimationNodeHandler::convertToPose(TFMatrix transformation)
   return tmp;
 }
 
-void Trajectory_EstimationNodeHandler::detectLoopClosure(cv::Mat currentFeature, Pose_6D Pose, int nodeId)
+void Trajectory_EstimationNodeHandler::detectLoopClosure(int currentSceneInd)
 {
-  if(FeatureMap.size()==0)
-  {
-    std::pair<cv::Mat,int> tmp;
-    tmp.first = currentFeature;
-    tmp.second = nodeId;
-  }
-  else
-  {
-    int sceneNumber = searchForSimilerScene(currentFeature);
-    if(sceneNumber > 0)
-    {
-      mapOptimizer->addEdge(Pose ,nodeId ,sceneNumber);
-    }
-    else
-    {
-      std::pair<cv::Mat,int> tmp;
-      tmp.first = currentFeature;
-      tmp.second = nodeId;
-    }
-  }
+  FrameData currentFrame = Frames[currentSceneInd];
+  cv::Mat currentFeature = currentFrame.getSceneFeatureDescriptors();
+  int currentNodeId = currentFrame.getGraphNodeId();
+  Pose_6D Pose = convertToPose(currentFrame.getRobotPose());
+  int similerNodeId = searchForSimilerScene(currentFeature);
+  if(similerNodeId > 0)
+    mapOptimizer->addEdge(Pose ,currentNodeId ,similerNodeId);
 }
 void Trajectory_EstimationNodeHandler::addToMap(Pose_6D newPose, int previousSceneInd, int currentSceneInd)
 {
   int newNodeId;
   mapOptimizer->addPoseToGraph(newPose, newNodeId);
-  Frames[currentSceneInd]->setGraphNodeId( newNodeId);
-  int prevNodeId = Frames[previousSceneInd]->getGraphNodeId();
+  Frames[currentSceneInd].setGraphNodeId( newNodeId);
+  int prevNodeId = Frames[previousSceneInd].getGraphNodeId();
   mapOptimizer->addEdge(newPose ,newNodeId ,prevNodeId);
   if(numberOfNode ==10)
   {
     numberOfNode = 0;
     updateGraph();
   }
-  return newNodeId;
 }
 int Trajectory_EstimationNodeHandler::searchForSimilerScene(cv::Mat pCurrentDescriptors)
 {
@@ -406,7 +392,7 @@ int Trajectory_EstimationNodeHandler::searchForSimilerScene(cv::Mat pCurrentDesc
     featureMatcher->matching2ImageFeatures(previousSceneFeatureDescriptors , pCurrentDescriptors,matches);
     if((matches.size() / pCurrentDescriptors.rows) > threshold)
     {
-      return FeatureMap[i].second;
+      return Frames[i].getGraphNodeId();
     }
   }
   return -1;
@@ -419,8 +405,8 @@ void Trajectory_EstimationNodeHandler::map(TFMatrix robot_pose, int previousScen
 {
   Pose_6D newPose = convertToPose(robot_pose);
   addToMap(newPose , previousSceneInd , currentSceneInd);
-  cv::Mat currentSceneFeaturesDes = Frames[currentSceneInd]->getSceneFeatureDescriptors();
-  detectLoopClosure(currentSceneFeaturesDes,prevPose,prevNodeId);
+
+  detectLoopClosure(currentSceneInd);
 }
 
 int main(int argc, char** argv)
@@ -430,7 +416,7 @@ int main(int argc, char** argv)
   std::vector<FrameData> Frames = readDataset();
   ROS_INFO(" size %i" , (int)Frames.size());
 
-  std::unique_ptr<Trajectory_EstimationNodeHandler> nh(new Trajectory_EstimationNodeHandler(Framse));
+  std::unique_ptr<Trajectory_EstimationNodeHandler> nh(new Trajectory_EstimationNodeHandler(Frames));
   nh->process();
   return 0;
 }
