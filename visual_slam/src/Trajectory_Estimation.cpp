@@ -39,6 +39,10 @@ std::string depthImages = datasetDIR + "depth/";
 std::string transformationMatrices = datasetDIR + "transformationMatricesPCL.txt";
 std::string featureMatching = datasetDIR + "matching/";
 std::string frames_matching = datasetDIR + "matching_frames.txt";
+std::string ground_truth_filename = datasetDIR + "groundtruth.txt";
+
+static int numberOfEstimationFailure = 0;
+static int numberOfLoopClosure = 0;
 
 PointCloudT::Ptr GeneratePointCloud(cv::Mat pImage)
 {
@@ -231,6 +235,7 @@ void Trajectory_EstimationNodeHandler::process()
       {
         ROS_INFO("Estimation failed");
         second_scn ++;
+        numberOfEstimationFailure++;
       }
       ROS_INFO("---------------------------------------------------------------");
     }
@@ -397,6 +402,7 @@ void Trajectory_EstimationNodeHandler::detectLoopClosure(int currentSceneInd)
   if(similerNodeId > 0)
   {
     ROS_INFO("Loop detected -- ");
+    numberOfLoopClosure ++;
     FrameData currentFrame = Frames[currentSceneInd];
     int currentNodeId = currentFrame.getGraphNodeId();
     Pose_6D Pose = convertToPose(currentFrame.getRobotPose());
@@ -462,5 +468,7 @@ int main(int argc, char** argv)
 
   std::unique_ptr<Trajectory_EstimationNodeHandler> nh(new Trajectory_EstimationNodeHandler(Frames));
   nh->process();
+  ROS_INFO("Number of loop closure detected %i" , numberOfLoopClosure );
+  ROS_INFO("Number of loop transformation estimation failure %i" , numberOfEstimationFailure);
   return 0;
 }

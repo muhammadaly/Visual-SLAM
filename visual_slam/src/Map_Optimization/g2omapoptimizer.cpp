@@ -62,3 +62,9 @@ void G2OMapOptimizer::optimize()
   graph->setVerbose(true);
   graph->optimize(10);
 }
+
+std::vector<Pose_6D> G2OMapOptimizer::getPoses()
+{
+  std::vector<Pose_6D> poses ;
+  return poses;
+}
