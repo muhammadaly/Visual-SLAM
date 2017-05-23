@@ -240,6 +240,10 @@ void Trajectory_EstimationNodeHandler::process()
       ROS_INFO("---------------------------------------------------------------");
     }
   }
+  std::vector<Pose_6D> v = mapOptimizer->getPoses();
+  ROS_INFO("Number of loop closure detected %i" , numberOfLoopClosure );
+  ROS_INFO("Number of loop transformation estimation failure %i" , numberOfEstimationFailure);
+  ROS_INFO("Number of poses %i" , v.size());
 }
 bool Trajectory_EstimationNodeHandler::estimateTransformBetween2Scenes(int previousFrameId, int currentFrameId, TFMatrix& transformation)
 {
@@ -468,7 +472,5 @@ int main(int argc, char** argv)
 
   std::unique_ptr<Trajectory_EstimationNodeHandler> nh(new Trajectory_EstimationNodeHandler(Frames));
   nh->process();
-  ROS_INFO("Number of loop closure detected %i" , numberOfLoopClosure );
-  ROS_INFO("Number of loop transformation estimation failure %i" , numberOfEstimationFailure);
   return 0;
 }

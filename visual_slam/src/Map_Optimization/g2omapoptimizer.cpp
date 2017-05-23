@@ -66,5 +66,13 @@ void G2OMapOptimizer::optimize()
 std::vector<Pose_6D> G2OMapOptimizer::getPoses()
 {
   std::vector<Pose_6D> poses ;
+  for(int i = 0 ; i < graph->vertices().size() ; i++)
+  {
+    VertexPose * pose
+        = dynamic_cast<VertexPose*>
+        (graph->vertices()[i]);
+    poses.push_back(pose->estimate());
+
+  }
   return poses;
 }
