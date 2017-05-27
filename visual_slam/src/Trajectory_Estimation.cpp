@@ -245,6 +245,7 @@ void Trajectory_EstimationNodeHandler::process()
   ROS_INFO("Number of loop transformation estimation failure %i" , numberOfEstimationFailure);
   ROS_INFO("Number of poses %i" , v.size());
 }
+
 bool Trajectory_EstimationNodeHandler::estimateTransformBetween2Scenes(int previousFrameId, int currentFrameId, TFMatrix& transformation)
 {
   std::vector<cv::KeyPoint> tPreviousKeypoints , tCurrentKeypoints ;
