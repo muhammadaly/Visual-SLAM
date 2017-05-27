@@ -14,7 +14,7 @@ public :
 private:
   ifstream gt_file;
   std::ofstream result_file;
-  EigenUtilites eigen_utilities;
+  std::unique_ptr<EigenUtilites> eigen_utilities;
 };
 
 #endif // TUMUTILITIES_H
