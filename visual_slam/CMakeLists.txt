@@ -71,6 +71,8 @@ set(SOURCES src/framedata.cpp
     src/Utilities/LogFile.cpp
     src/custom_types/vertex_pose.cpp
     src/custom_types/edge_pose_pose.cpp
+    src/Utilities/TUMUtilities.cpp
+    src/Utilities/EigenUtilites.cpp
     src/Map_Optimization/g2omapoptimizer.cpp)
 
 set(HEADERS include/visual_slam/framedata.h
@@ -84,6 +86,8 @@ set(HEADERS include/visual_slam/framedata.h
     include/visual_slam/Feature_Matching/FeatureMatcher.h
     include/visual_slam/Utilities/PCLUtilities.h
     include/visual_slam/Utilities/LogFile.h
+    include/visual_slam/Utilities/TUMUtilities.h
+    include/visual_slam/Utilities/EigenUtilites.h
     include/visual_slam/custom_types/vertex_pose.h
     include/visual_slam/custom_types/edge_pose_pose.h
     include/visual_slam/Map_Optimization/g2omapoptimizer.h)

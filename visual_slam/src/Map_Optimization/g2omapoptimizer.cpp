@@ -3,6 +3,12 @@
 G2OMapOptimizer::G2OMapOptimizer()
 {
   graph = std::unique_ptr<g2o::SparseOptimizer>(new g2o::SparseOptimizer);
+  SlamLinearSolver* linearSolver = new SlamLinearSolver();
+  linearSolver->setBlockOrdering(false);
+  SlamBlockSolver* blockSolver = new SlamBlockSolver(linearSolver);
+  g2o::OptimizationAlgorithmGaussNewton* solver = new g2o::OptimizationAlgorithmGaussNewton(blockSolver);
+
+  graph->setAlgorithm(solver);
 }
 
 void G2OMapOptimizer::addPoseToGraph(Eigen::Isometry3d& pose, int& poseNum2Id)

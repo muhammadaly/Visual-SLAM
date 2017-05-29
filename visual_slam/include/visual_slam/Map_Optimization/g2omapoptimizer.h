@@ -4,10 +4,18 @@
 #include <Eigen/Core>
 #include <visual_slam/definitions.h>
 
-#include <g2o/core/sparse_optimizer.h>
-#include <g2o/core/block_solver.h>
+#include "g2o/core/sparse_optimizer.h"
+#include "g2o/core/block_solver.h"
+#include "g2o/core/factory.h"
+#include "g2o/core/optimization_algorithm_factory.h"
+#include "g2o/core/optimization_algorithm_gauss_newton.h"
+#include "g2o/solvers/csparse/linear_solver_csparse.h"
+
 #include <visual_slam/custom_types/vertex_pose.h>
 #include <visual_slam/custom_types/edge_pose_pose.h>
+
+typedef g2o::BlockSolver< g2o::BlockSolverTraits<-1, -1> >  SlamBlockSolver;
+typedef g2o::LinearSolverCSparse<SlamBlockSolver::PoseMatrixType> SlamLinearSolver;
 
 class G2OMapOptimizer
 {

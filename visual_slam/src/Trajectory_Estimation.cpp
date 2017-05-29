@@ -17,19 +17,16 @@
 #include <pcl/point_types.h>
 #include <pcl/visualization/pcl_visualizer.h>
 
-#include <visual_slam/Transformation_Estimation/TransformationEstimator.h>
-#include <visual_slam/Transformation_Estimation/PCL3DRANSACTransformationEstimator.h>
+#include <visual_slam/definitions.h>
 #include <visual_slam/framedata.h>
+
+#include <visual_slam/Transformation_Estimation/PCL3DRANSACTransformationEstimator.h>
 #include <visual_slam/Feature_Extraction/CVORBFeatureExtractorAndDescriptor.h>
 #include <visual_slam/Feature_Matching/cvflannfeaturematcher.h>
-#include <visual_slam/Utilities/PCLUtilities.h>
+#include "visual_slam/Utilities/PCLUtilities.h"
 #include "visual_slam/Utilities/LogFile.h"
-
-#include <visual_slam/definitions.h>
+#include "visual_slam/Utilities/TUMUtilities.h"
 #include <visual_slam/Map_Optimization/g2omapoptimizer.h>
-
-#include <visual_slam/definitions.h>
-#include <visual_slam_msgs/scene.h>
 
 std::string machineName = "ivsystems";
 std::string datasetName = "rgbd_dataset_freiburg1_desk2";
@@ -40,7 +37,7 @@ std::string transformationMatrices = datasetDIR + "transformationMatricesPCL.txt
 std::string featureMatching = datasetDIR + "matching/";
 std::string frames_matching = datasetDIR + "matching_frames.txt";
 std::string ground_truth_filename = datasetDIR + "groundtruth.txt";
-
+std::string result_filename = datasetDIR + "result.txt";
 static int numberOfEstimationFailure = 0;
 static int numberOfLoopClosure = 0;
 
@@ -163,7 +160,7 @@ private:
   std::unique_ptr<FeatureMatcher> featureMatcher;
   PCLUtilities pclUTL;
   std::unique_ptr<LogFile> log;
-
+  std::unique_ptr<TUMUtilities> utility;
 
   ros::Publisher odom_pub ;
   ros::Publisher pose_pub;
@@ -171,7 +168,6 @@ private:
   ros::Publisher scene_pub;
   tf::TransformBroadcaster br;
   std::vector<geometry_msgs::PoseStamped> fullPath;
-  short numberOfNode = 0;
 
   std::unique_ptr<G2OMapOptimizer> mapOptimizer;
   std::vector<FrameData> Frames;
@@ -190,13 +186,12 @@ Trajectory_EstimationNodeHandler::Trajectory_EstimationNodeHandler(std::vector<F
   odom_pub = _node.advertise<nav_msgs::Odometry>("odom", 50);
   pose_pub = _node.advertise<geometry_msgs::PoseStamped>("robot_pose",50);
   path_pub = _node.advertise<nav_msgs::Path>("robot_path",50);
-  scene_pub = _node.advertise<visual_slam_msgs::scene>("scene_data",50);
   fullPath.clear();
   log = std::unique_ptr<LogFile>(new LogFile(datasetDIR));
+  utility = std::unique_ptr<TUMUtilities>( new TUMUtilities(ground_truth_filename , result_filename));
 
   mapOptimizer = std::unique_ptr<G2OMapOptimizer>(new G2OMapOptimizer);
   initializeGraphMap();
-  numberOfNode = 0;
 }
 
 void Trajectory_EstimationNodeHandler::process()
@@ -240,10 +235,11 @@ void Trajectory_EstimationNodeHandler::process()
       ROS_INFO("---------------------------------------------------------------");
     }
   }
+  updateGraph();
   std::vector<Pose_6D> v = mapOptimizer->getPoses();
   ROS_INFO("Number of loop closure detected %i" , numberOfLoopClosure );
   ROS_INFO("Number of loop transformation estimation failure %i" , numberOfEstimationFailure);
-  ROS_INFO("Number of poses %i" , v.size());
+  utility->writingResults(v);
 }
 
 bool Trajectory_EstimationNodeHandler::estimateTransformBetween2Scenes(int previousFrameId, int currentFrameId, TFMatrix& transformation)
@@ -424,12 +420,6 @@ void Trajectory_EstimationNodeHandler::addToMap(Pose_6D newPose, int previousSce
   int prevNodeId = Frames[previousSceneInd].getGraphNodeId();
   mapOptimizer->addEdge(newPose ,newNodeId ,prevNodeId);
   ROS_INFO("New Edge : ( %i , %i )" , newNodeId , prevNodeId);
-//  if(numberOfNode ==10)
-//  {
-//    numberOfNode = 0;
-//    updateGraph();
-//  }
-  numberOfNode++;
 }
 int Trajectory_EstimationNodeHandler::searchForSimilerScene(int currentSceneInd)
 {

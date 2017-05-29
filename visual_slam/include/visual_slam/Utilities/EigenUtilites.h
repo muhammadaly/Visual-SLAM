@@ -1,13 +1,16 @@
 #ifndef EIGENUTILITIES_H
 #define EIGENUTILITIES_H
 #include "visual_slam/definitions.h"
+#include <Eigen/Geometry>
 
 class EigenUtilites{
 public :
   EigenUtilites();
-  Quaternion ExtractRotationMatrixAsQuaternion(DTFMatrix);
-  Quaternion ExtractTranslationVector(DTFMatrix);
+  FQuarterionRotation ExtractRotationMatrixAsQuaternion(DTFMatrix);
+  FTranslatonVec ExtractTranslationVector(DTFMatrix);
 
 };
 #endif // EIGENUTILITIES_H
+
+
 

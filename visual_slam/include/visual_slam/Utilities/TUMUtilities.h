@@ -5,16 +5,20 @@
 #include <iostream>
 #include <fstream>
 
-#include "eigenutilities.h"
+#include "EigenUtilites.h"
 
 class TUMUtilities{
+
 public :
-  TUMUtilities(std::string ground_truth_filename);
+  TUMUtilities();
+  TUMUtilities(std::string,std::string);
   bool writingResults(std::vector<Pose_6D>);
+
 private:
-  ifstream gt_file;
-  std::ofstream result_file;
+  std::string gt_filename , result_filename;
   std::unique_ptr<EigenUtilites> eigen_utilities;
+
+  std::vector<std::string> getTimeStamps();
 };
 
 #endif // TUMUTILITIES_H
