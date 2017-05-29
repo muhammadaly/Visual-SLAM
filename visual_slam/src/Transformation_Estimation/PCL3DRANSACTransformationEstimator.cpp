@@ -29,7 +29,7 @@ bool PCL3DRANSACTransformationEstimator::estimateTransformation(PointCloudT::Ptr
   }
   else
   {
-    pcl::console::print_error("Alignment failed!\n");
+//    pcl::console::print_error("Alignment failed!\n");
     return false;
   }
 }
