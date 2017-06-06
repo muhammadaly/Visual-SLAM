@@ -1,6 +1,6 @@
 #ifndef EIGENUTILITIES_H
 #define EIGENUTILITIES_H
-#include "visual_slam/definitions.h"
+#include "definitions.h"
 #include <Eigen/Geometry>
 
 class EigenUtilites{

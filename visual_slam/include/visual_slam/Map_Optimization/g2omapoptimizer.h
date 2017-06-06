@@ -2,7 +2,7 @@
 #define G2OMAPOPTIMIZER_H
 
 #include <Eigen/Core>
-#include <visual_slam/definitions.h>
+#include <definitions.h>
 
 #include "g2o/core/sparse_optimizer.h"
 #include "g2o/core/block_solver.h"
@@ -11,8 +11,8 @@
 #include "g2o/core/optimization_algorithm_gauss_newton.h"
 #include "g2o/solvers/csparse/linear_solver_csparse.h"
 
-#include <visual_slam/custom_types/vertex_pose.h>
-#include <visual_slam/custom_types/edge_pose_pose.h>
+#include <custom_types/vertex_pose.h>
+#include <custom_types/edge_pose_pose.h>
 
 typedef g2o::BlockSolver< g2o::BlockSolverTraits<-1, -1> >  SlamBlockSolver;
 typedef g2o::LinearSolverCSparse<SlamBlockSolver::PoseMatrixType> SlamLinearSolver;
@@ -24,7 +24,7 @@ public:
   void addPoseToGraph(Eigen::Isometry3d& pose, int& poseNum2Id);
   void addEdge(const Eigen::Isometry3d & a_T_b, const int id_a, const int id_b);
   void optimize();
-  std::vector<Pose_6D> getPoses();
+  std::vector<visual_slam::Pose_6D> getPoses();
 
 private :
   std::unique_ptr<g2o::SparseOptimizer> graph;

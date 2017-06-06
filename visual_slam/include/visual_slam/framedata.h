@@ -26,8 +26,8 @@ public:
     void setGraphNodeId(int);
 
 
-    TFMatrix getRobotPose()  const;
-    void setRobotPose(TFMatrix);
+    visual_slam::TFMatrix getRobotPose()  const;
+    void setRobotPose(visual_slam::TFMatrix);
 
 private:
     cv::Mat _frameMatrix;
@@ -36,7 +36,7 @@ private:
     std::string _timestamp;
     cv::Mat SceneFeatureDescriptors;
     int GraphNodeId;
-    TFMatrix RobotPose;
+    visual_slam::TFMatrix RobotPose;
 };
 
 #endif // FRAMEDATA_H

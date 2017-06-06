@@ -1,4 +1,4 @@
-#include "visual_slam/Feature_Extraction/CVORBFeatureExtractorAndDescriptor.h"
+#include "Feature_Extraction/CVORBFeatureExtractorAndDescriptor.h"
 
 
 CVORBFeatureExtractorAndDescriptor::CVORBFeatureExtractorAndDescriptor()

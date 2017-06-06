@@ -1,8 +1,8 @@
 #ifndef FEATUREEXTRACTORANDDESCRIPTOR_H
 #define FEATUREEXTRACTORANDDESCRIPTOR_H
 
-#include <opencv2/core/core.hpp>
-#include "visual_slam/framedata.h"
+#include "opencv2/core.hpp"
+#include "framedata.h"
 
 class FeatureExtractorAndDescriptor
 {

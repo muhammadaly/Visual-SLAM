@@ -1,7 +1,7 @@
 #ifndef PCLFEATUREEXTRACTION_H
 #define PCLFEATUREEXTRACTION_H
 
-#include <visual_slam/framedata.h>
+#include <framedata.h>
 
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>

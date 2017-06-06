@@ -12,7 +12,7 @@ class TUMUtilities{
 public :
   TUMUtilities();
   TUMUtilities(std::string,std::string);
-  bool writingResults(std::vector<Pose_6D>);
+  bool writingResults(std::vector<visual_slam::Pose_6D>);
 
 private:
   std::string gt_filename , result_filename;

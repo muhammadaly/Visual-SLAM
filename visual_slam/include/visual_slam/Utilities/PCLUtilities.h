@@ -1,7 +1,7 @@
 #include <opencv2/core/core.hpp>
 
-#include "visual_slam/definitions.h"
-#include "visual_slam/framedata.h"
+#include "definitions.h"
+#include "framedata.h"
 
 
 class PCLUtilities{
@@ -22,6 +22,6 @@ public:
                                   std::vector<cv::KeyPoint> previousKeypoints, std::vector<cv::KeyPoint> currentKeypoints,
                                   cv::Mat previousDescriptors , cv::Mat currentDescriptors,
                                   FrameData previousFrameData, FrameData currentFrameData,
-                                  PointCloudT::Ptr previousKeypointsPointCloud, PointCloudT::Ptr currentKeypointsPointCloud,
-                                  FeatureCloudT::Ptr previousFeaturesPointCloud, FeatureCloudT::Ptr currentFeaturesPointCloud);
+                                  visual_slam::PointCloudT::Ptr previousKeypointsPointCloud, visual_slam::PointCloudT::Ptr currentKeypointsPointCloud,
+                                  visual_slam::FeatureCloudT::Ptr previousFeaturesPointCloud, visual_slam::FeatureCloudT::Ptr currentFeaturesPointCloud);
 };

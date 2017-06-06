@@ -1,4 +1,4 @@
-#include "visual_slam/Utilities/TUMUtilities.h"
+#include "Utilities/TUMUtilities.h"
 
 TUMUtilities::TUMUtilities(std::string ground_truth_filename,std::string presult_filename)
 {
@@ -11,7 +11,7 @@ TUMUtilities::TUMUtilities()
 {
 
 }
-bool TUMUtilities::writingResults(std::vector<Pose_6D> poses)
+bool TUMUtilities::writingResults(std::vector<visual_slam::Pose_6D> poses)
 {
   std::ofstream result_file ;
   result_file.open(result_filename.c_str());

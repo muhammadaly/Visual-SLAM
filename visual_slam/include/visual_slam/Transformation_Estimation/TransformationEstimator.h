@@ -6,7 +6,7 @@
 
 #include <eigen3/Eigen/Core>
 
-#include <visual_slam/definitions.h>
+#include <definitions.h>
 
 class TransformationEstimator
 {

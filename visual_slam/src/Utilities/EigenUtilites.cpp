@@ -1,4 +1,4 @@
-#include "visual_slam/Utilities/EigenUtilites.h"
+#include "Utilities/EigenUtilites.h"
 
 FQuarterionRotation EigenUtilites::ExtractRotationMatrixAsQuaternion(DTFMatrix transformationMatrix)
 {

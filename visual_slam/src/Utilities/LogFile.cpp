@@ -1,4 +1,4 @@
-#include "visual_slam/Utilities/LogFile.h"
+#include "Utilities/LogFile.h"
 
 LogFile::LogFile(std::string datasetFileName)
 {

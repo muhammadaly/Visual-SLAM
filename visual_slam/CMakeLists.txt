@@ -18,10 +18,10 @@ find_package(catkin REQUIRED COMPONENTS ${${PROJECT_NAME}_CATKIN_DEPS})
 find_package(PCL 1.7 REQUIRED REQUIRED COMPONENTS filters io registration segmentation visualization)
 
 set(OpenCV_INCLUDE_DIR "/usr/local/include")
-set(OpenCV_LIBS  "opencv_core;opencv_highgui;opencv_imgproc;opencv_features2d;opencv_imgcodecs;opencv_flann")
+set(OpenCV_LIBS  "opencv_core;opencv_highgui;opencv_imgproc;opencv_features2d;opencv_imgcodecs;opencv_flann;opencv_xfeatures2d")
 set(VTK_INCLUDE_DIR "/usr/include/vtk-5.8")
 
-include_directories(include
+include_directories(include/visual_slam
     ${VTK_INCLUDE_DIR}
     ${OpenCV_INCLUDE_DIR}
     ${PCL_INCLUDE_DIRS}
@@ -61,6 +61,8 @@ add_definitions(${PCL_DEFINITIONS})
 
 set(SOURCES src/framedata.cpp
     src/Feature_Extraction/CVORBFeatureExtractorAndDescriptor.cpp
+    src/Feature_Extraction/CVSURFFeatureExtractorAndDescriptor.cpp
+    src/Feature_Extraction/CVSIFTFeatureExtractorAndDescriptor.cpp
     src/Feature_Extraction/pclfeaturedescriptor.cpp
     src/Feature_Extraction/pclfeatureextraction.cpp
     src/Transformation_Estimation/TransformationEstimator.cpp
@@ -78,6 +80,8 @@ set(SOURCES src/framedata.cpp
 set(HEADERS include/visual_slam/framedata.h
     include/visual_slam/Feature_Extraction/FeatureExtractorAndDescriptor.h
     include/visual_slam/Feature_Extraction/CVORBFeatureExtractorAndDescriptor.h
+    include/visual_slam/Feature_Extraction/CVSURFFeatureExtractorAndDescriptor.h
+    include/visual_slam/Feature_Extraction/CVSIFTFeatureExtractorAndDescriptor.h
     include/visual_slam/Feature_Extraction/pclfeaturedescriptor.h
     include/visual_slam/Feature_Extraction/pclfeatureextraction.h
     include/visual_slam/Transformation_Estimation/TransformationEstimator.h

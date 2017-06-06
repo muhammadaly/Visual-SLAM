@@ -1,4 +1,4 @@
-#include <visual_slam/framedata.h>
+#include <framedata.h>
 
 FrameData::FrameData()
 {
@@ -63,12 +63,12 @@ void FrameData::setGraphNodeId(int pGraphNodeId)
   GraphNodeId = pGraphNodeId;
 }
 
-TFMatrix FrameData::getRobotPose() const
+visual_slam::TFMatrix FrameData::getRobotPose() const
 {
   return RobotPose;
 }
 
-void FrameData::setRobotPose(TFMatrix pRobotPose)
+void FrameData::setRobotPose(visual_slam::TFMatrix pRobotPose)
 {
   RobotPose = pRobotPose;
 }
