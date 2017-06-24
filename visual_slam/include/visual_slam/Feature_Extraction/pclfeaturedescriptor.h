@@ -5,7 +5,7 @@
 #include <pcl/point_cloud.h>
 
 #include <opencv2/core.hpp>
-
+namespace visual_slam {
 static const int ORBFeatureVectorLength = 32;
 static const int BRISKFeatureVectorLength = 64;
 
@@ -19,5 +19,5 @@ public:
 
   FeatureCloudT::Ptr fromCVDescriptor(cv::Mat pDescriptors);
 };
-
+}
 #endif // PCLFEATUREDESCRIPTOR_H

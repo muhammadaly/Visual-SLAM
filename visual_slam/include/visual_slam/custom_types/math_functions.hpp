@@ -4,6 +4,8 @@
 
 #include <Eigen/Core>
 
+namespace visual_slam {
+
   // converts compact quaternion (3D vector part of quaternion) to a rotation matrix
   inline Eigen::Matrix3d fromCompactQuat(const Eigen::Vector3d& v) {
     double w = 1-v.squaredNorm();
@@ -46,5 +48,5 @@
     E.diagonal().array() -= 1;
     const_cast<Eigen::MatrixBase<Derived>&>(R) -= 0.5 * R * E;
   }
-
+}
 #endif

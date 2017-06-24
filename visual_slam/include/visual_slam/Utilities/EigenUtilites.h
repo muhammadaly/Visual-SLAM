@@ -1,7 +1,9 @@
 #ifndef EIGENUTILITIES_H
 #define EIGENUTILITIES_H
-#include "visual_slam/definitions.h"
+#include "definitions.h"
 #include <Eigen/Geometry>
+
+namespace visual_slam {
 
 class EigenUtilites{
 public :
@@ -10,7 +12,6 @@ public :
   FTranslatonVec ExtractTranslationVector(DTFMatrix);
 
 };
+
+}
 #endif // EIGENUTILITIES_H
-
-
-

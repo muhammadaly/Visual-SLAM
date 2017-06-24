@@ -1,16 +1,16 @@
-#include "visual_slam/Utilities/LogFile.h"
+#include "Utilities/LogFile.h"
 
-LogFile::LogFile(std::string datasetFileName)
+visual_slam::LogFile::LogFile(std::string datasetFileName)
 {
   myfile.open (datasetFileName + loggingFilename);
 }
 
-LogFile::~LogFile()
+visual_slam::LogFile::~LogFile()
 {
   myfile.close();
 }
 
-void LogFile::Log(std::string message)
+void visual_slam::LogFile::Log(std::string message)
 {
   myfile << (message + "\n");
 }

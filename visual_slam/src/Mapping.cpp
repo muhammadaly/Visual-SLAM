@@ -17,18 +17,18 @@
 #include <pcl/point_types.h>
 #include <pcl/visualization/pcl_visualizer.h>
 
-#include <visual_slam/Transformation_Estimation/TransformationEstimator.h>
-#include <visual_slam/Transformation_Estimation/PCL3DRANSACTransformationEstimator.h>
-#include <visual_slam/framedata.h>
-#include <visual_slam/Feature_Extraction/CVORBFeatureExtractorAndDescriptor.h>
-#include <visual_slam/Feature_Matching/cvflannfeaturematcher.h>
-#include <visual_slam/Utilities/PCLUtilities.h>
+#include <Transformation_Estimation/TransformationEstimator.h>
+#include <Transformation_Estimation/PCL3DRANSACTransformationEstimator.h>
+#include <framedata.h>
+#include <Feature_Extraction/CVORBFeatureExtractorAndDescriptor.h>
+#include <Feature_Matching/cvflannfeaturematcher.h>
+#include <Utilities/PCLUtilities.h>
 
-#include <visual_slam/definitions.h>
-#include <visual_slam/Map_Optimization/g2omapoptimizer.h>
+#include <definitions.h>
+#include <Map_Optimization/g2omapoptimizer.h>
 
-#include <visual_slam/definitions.h>
-#include <visual_slam_msgs/scene.h>
+#include <definitions.h>
+#include <msgs/scene.h>
 
 class MappingNodeHandler
 {

@@ -1,6 +1,6 @@
-#include "visual_slam/Utilities/EigenUtilites.h"
+#include "Utilities/EigenUtilites.h"
 
-FQuarterionRotation EigenUtilites::ExtractRotationMatrixAsQuaternion(DTFMatrix transformationMatrix)
+visual_slam::FQuarterionRotation visual_slam::EigenUtilites::ExtractRotationMatrixAsQuaternion(DTFMatrix transformationMatrix)
 {
   FRotationMatrix rotationMatrix;
 
@@ -18,16 +18,16 @@ FQuarterionRotation EigenUtilites::ExtractRotationMatrixAsQuaternion(DTFMatrix t
 
   return FQuarterionRotation(rotationMatrix);
 }
-FTranslatonVec EigenUtilites::ExtractTranslationVector(DTFMatrix transformationMatrix)
+visual_slam::FTranslatonVec visual_slam::EigenUtilites::ExtractTranslationVector(DTFMatrix transformationMatrix)
 {
-  FTranslatonVec translationVec;
+  visual_slam::FTranslatonVec translationVec;
   translationVec(0) = transformationMatrix(0,3);
   translationVec(1) = transformationMatrix(1,3);
   translationVec(2) = transformationMatrix(2,3);
   return translationVec;
 }
 
-EigenUtilites::EigenUtilites()
+visual_slam::EigenUtilites::EigenUtilites()
 {
 
 }

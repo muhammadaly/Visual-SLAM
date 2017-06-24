@@ -6,14 +6,11 @@
  */
 
 // for point transformations
-#include "visual_slam/custom_types/edge_pose_pose.h"
+#include "custom_types/edge_pose_pose.h"
+#include "custom_types/draw_functions.hpp"
+#include "custom_types/math_functions.hpp"
 
-#include "visual_slam/custom_types/draw_functions.hpp"
-
-#include "visual_slam/custom_types/math_functions.hpp"
-
-bool EdgePosePose
-::write(std::ostream& os) const
+bool visual_slam::EdgePosePose::write(std::ostream& os) const
 {
   Eigen::Quaterniond q(measurement().matrix().topLeftCorner<3,3>()); // extract rotation part
   q.normalize();
@@ -37,8 +34,7 @@ bool EdgePosePose
   return os.good();
 }
 
-bool EdgePosePose
-::read(std::istream& is)
+bool visual_slam::EdgePosePose::read(std::istream& is)
 {
   std::vector<double> est(7);
   for (int i=0; i<7; i++)
@@ -64,8 +60,7 @@ bool EdgePosePose
   return true;
 }
 
-void EdgePosePose
-::computeError()
+void visual_slam::EdgePosePose::computeError()
 {
   const VertexPose * w_T_a
       = static_cast<const VertexPose*>(_vertices[0]);

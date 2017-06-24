@@ -17,6 +17,8 @@
 #include "vertex_landmarkxyz.h"
 
 const int NUM_VERTICES = 2;
+namespace visual_slam {
+
 
 class EdgePoseLandmarkReproject : public  g2o::BaseBinaryEdge<2, Eigen::Vector2d, VertexPose, VertexLandmarkXYZ>
 {
@@ -54,6 +56,6 @@ class EdgePoseLandmarkReprojectDrawAction: public g2o::DrawAction{
   protected:
     virtual bool refreshPropertyPtrs(g2o::HyperGraphElementAction::Parameters* params_);
 };
-
+}
 
 #endif // EDGE_POSE_POSE

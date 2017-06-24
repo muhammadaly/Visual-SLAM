@@ -1,6 +1,6 @@
 
-#include "visual_slam/custom_types/vertex_pose.h"
-#include "visual_slam/custom_types/draw_functions.hpp"
+#include "custom_types/vertex_pose.h"
+#include "custom_types/draw_functions.hpp"
 #include "g2o/core/factory.h"
 #include "g2o/stuff/opengl_wrapper.h"
 
@@ -9,7 +9,7 @@
 
 const static double DEFAULT_COORDINATE_SIZE = 1.5;
 
-  VertexPose::VertexPose() :
+  visual_slam::VertexPose::VertexPose() :
     g2o::BaseVertex<6, Eigen::Isometry3d>(),
     _numOplusCalls(0)
   {
@@ -17,7 +17,7 @@ const static double DEFAULT_COORDINATE_SIZE = 1.5;
     updateCache();
   }
 
-  bool VertexPose::read(std::istream& is)
+  bool visual_slam::VertexPose::read(std::istream& is)
   {
     std::vector<double> est(7);
     for (int i=0; i<7; i++)
@@ -30,7 +30,7 @@ const static double DEFAULT_COORDINATE_SIZE = 1.5;
     return true;
   }
 
-  bool VertexPose::write(std::ostream& os) const
+  bool visual_slam::VertexPose::write(std::ostream& os) const
   {
     Eigen::Quaterniond q(_estimate.matrix().topLeftCorner<3,3>()); // extract rotation part
     q.normalize();

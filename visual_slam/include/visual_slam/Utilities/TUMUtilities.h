@@ -7,12 +7,14 @@
 
 #include "EigenUtilites.h"
 
+namespace visual_slam {
+
 class TUMUtilities{
 
 public :
   TUMUtilities();
   TUMUtilities(std::string,std::string);
-  bool writingResults(std::vector<Pose_6D>);
+  bool writingResults(std::vector<visual_slam::Pose_6D>);
 
 private:
   std::string gt_filename , result_filename;
@@ -20,5 +22,7 @@ private:
 
   std::vector<std::string> getTimeStamps();
 };
+
+}
 
 #endif // TUMUTILITIES_H

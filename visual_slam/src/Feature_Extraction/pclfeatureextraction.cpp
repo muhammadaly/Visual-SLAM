@@ -1,16 +1,16 @@
-#include "visual_slam/Feature_Extraction/pclfeatureextraction.h"
+#include "Feature_Extraction/pclfeatureextraction.h"
 
-PCLFeatureExtraction::PCLFeatureExtraction()
+visual_slam::PCLFeatureExtraction::PCLFeatureExtraction()
 {
 
 }
 
-PointCloudT::Ptr PCLFeatureExtraction::fromCVKeypoint(std::vector<cv::KeyPoint> pKeypoints, FrameData pFrameData)
+visual_slam::PointCloudT::Ptr visual_slam::PCLFeatureExtraction::fromCVKeypoint(std::vector<cv::KeyPoint> pKeypoints, visual_slam::FrameData pFrameData)
 {
   cv::Mat Image = pFrameData.getFrameMatrix();
   cv::Mat depthImage = pFrameData.getDepthMatrix();
 
-  PointCloudT::Ptr KeypointPC(new PointCloudT);
+  visual_slam::PointCloudT::Ptr KeypointPC(new visual_slam::PointCloudT);
 
   float Z, factor = 5000;
 
@@ -34,7 +34,7 @@ PointCloudT::Ptr PCLFeatureExtraction::fromCVKeypoint(std::vector<cv::KeyPoint> 
 
     Z = depthImage.at<u_int16_t>(rowInd , colInd) / factor;
 
-    PointT p;
+    visual_slam::PointT p;
     p.x = ((colInd - cx) * Z )/fx;
     p.y = ((rowInd - cy) * Z )/fy;
     p.z = Z;

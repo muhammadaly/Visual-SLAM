@@ -1,10 +1,10 @@
-#include <visual_slam/framedata.h>
+#include <framedata.h>
 
-FrameData::FrameData()
+visual_slam::FrameData::FrameData()
 {
 }
 
-FrameData::FrameData(cv::Mat pframeMatrix, std::string pfileName)
+visual_slam::FrameData::FrameData(cv::Mat pframeMatrix, std::string pfileName)
 {
     _fileName = pfileName;
     _frameMatrix = pframeMatrix;
@@ -13,7 +13,7 @@ FrameData::FrameData(cv::Mat pframeMatrix, std::string pfileName)
     _timestamp = pfileName.substr(start , found-start);
 }
 
-FrameData::FrameData(cv::Mat pframeMatrix, std::string pfileName, cv::Mat pdepthMatrix)
+visual_slam::FrameData::FrameData(cv::Mat pframeMatrix, std::string pfileName, cv::Mat pdepthMatrix)
 {
     _fileName = pfileName;
     _frameMatrix = pframeMatrix;
@@ -23,52 +23,52 @@ FrameData::FrameData(cv::Mat pframeMatrix, std::string pfileName, cv::Mat pdepth
     _depthMatrix = pdepthMatrix;
 }
 
-cv::Mat FrameData::getFrameMatrix() const
+cv::Mat visual_slam::FrameData::getFrameMatrix() const
 {
     return _frameMatrix;
 }
 
-std::string FrameData::getFileName() const
+std::string visual_slam::FrameData::getFileName() const
 {
     return _fileName;
 }
 
-std::string FrameData::getTimestamp() const
+std::string visual_slam::FrameData::getTimestamp() const
 {
     return _timestamp;
 }
 
-cv::Mat FrameData::getDepthMatrix() const
+cv::Mat visual_slam::FrameData::getDepthMatrix() const
 {
     return _depthMatrix;
 }
 
-void FrameData::setSceneFeatureDescriptors(cv::Mat pSceneFeatureDescriptors)
+void visual_slam::FrameData::setSceneFeatureDescriptors(cv::Mat pSceneFeatureDescriptors)
 {
   SceneFeatureDescriptors = pSceneFeatureDescriptors;
 }
 
-cv::Mat FrameData::getSceneFeatureDescriptors() const
+cv::Mat visual_slam::FrameData::getSceneFeatureDescriptors() const
 {
   return SceneFeatureDescriptors;
 }
 
-int FrameData::getGraphNodeId() const
+int visual_slam::FrameData::getGraphNodeId() const
 {
   return GraphNodeId;
 }
 
-void FrameData::setGraphNodeId(int pGraphNodeId)
+void visual_slam::FrameData::setGraphNodeId(int pGraphNodeId)
 {
   GraphNodeId = pGraphNodeId;
 }
 
-TFMatrix FrameData::getRobotPose() const
+visual_slam::TFMatrix visual_slam::FrameData::getRobotPose() const
 {
   return RobotPose;
 }
 
-void FrameData::setRobotPose(TFMatrix pRobotPose)
+void visual_slam::FrameData::setRobotPose(visual_slam::TFMatrix pRobotPose)
 {
   RobotPose = pRobotPose;
 }

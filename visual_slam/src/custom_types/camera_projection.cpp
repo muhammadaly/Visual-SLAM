@@ -9,7 +9,7 @@
 
 #include <iostream>
 
-bool CameraProjection
+bool visual_slam::CameraProjection
 ::read(std::istream& is)
 {
   K_ = Eigen::Matrix3d::Identity();
@@ -35,7 +35,7 @@ bool CameraProjection
   return true;
 }
 
-bool CameraProjection
+bool visual_slam::CameraProjection
 ::write(std::ostream& os) const
 {
   double f_x, f_y, c_x, c_y;
@@ -51,7 +51,7 @@ bool CameraProjection
   return true;
 }
 
-Eigen::Vector2d CameraProjection
+Eigen::Vector2d visual_slam::CameraProjection
 ::cam_map(const Eigen::Vector3d & P_cam) const
 {
   Eigen::Vector3d P_normalized;
@@ -63,7 +63,7 @@ Eigen::Vector2d CameraProjection
   return P_img.block<2,1>(0,0);
 }
 
-Eigen::Vector3d CameraProjection
+Eigen::Vector3d visual_slam::CameraProjection
 ::ray_map(const Eigen::Vector2d & P_img) const
 {
   Eigen::Vector3d P_ray;

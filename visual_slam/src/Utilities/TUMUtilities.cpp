@@ -1,17 +1,17 @@
-#include "visual_slam/Utilities/TUMUtilities.h"
+#include "Utilities/TUMUtilities.h"
 
-TUMUtilities::TUMUtilities(std::string ground_truth_filename,std::string presult_filename)
+visual_slam::TUMUtilities::TUMUtilities(std::string ground_truth_filename,std::string presult_filename)
 {
   eigen_utilities = std::unique_ptr<EigenUtilites>(new EigenUtilites);
   gt_filename = ground_truth_filename;
   result_filename = presult_filename;
 }
 
-TUMUtilities::TUMUtilities()
+visual_slam::TUMUtilities::TUMUtilities()
 {
 
 }
-bool TUMUtilities::writingResults(std::vector<Pose_6D> poses)
+bool visual_slam::TUMUtilities::writingResults(std::vector<visual_slam::Pose_6D> poses)
 {
   std::ofstream result_file ;
   result_file.open(result_filename.c_str());
@@ -44,7 +44,7 @@ bool TUMUtilities::writingResults(std::vector<Pose_6D> poses)
   result_file.close();
 }
 
-std::vector<std::string> TUMUtilities::getTimeStamps()
+std::vector<std::string> visual_slam::TUMUtilities::getTimeStamps()
 {
   std::ifstream gt_file(gt_filename.c_str());
   std::vector<std::string> timestamps;
