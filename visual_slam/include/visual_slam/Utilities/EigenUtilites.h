@@ -3,6 +3,8 @@
 #include "definitions.h"
 #include <Eigen/Geometry>
 
+namespace visual_slam {
+
 class EigenUtilites{
 public :
   EigenUtilites();
@@ -10,7 +12,6 @@ public :
   FTranslatonVec ExtractTranslationVector(DTFMatrix);
 
 };
+
+}
 #endif // EIGENUTILITIES_H
-
-
-

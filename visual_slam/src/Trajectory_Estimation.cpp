@@ -9,13 +9,14 @@
 #include <nav_msgs/Path.h>
 #include <geometry_msgs/PoseStamped.h>
 #include <geometry_msgs/Pose.h>
-#include <pcl_conversions/pcl_conversions.h>
 #include <cv_bridge/cv_bridge.h>
 #include <sensor_msgs/image_encodings.h>
 
+#include <pcl_conversions/pcl_conversions.h>
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
 #include <pcl/visualization/pcl_visualizer.h>
+#include <pcl/common/transforms.h>
 
 #include <definitions.h>
 #include <framedata.h>
@@ -23,12 +24,15 @@
 #include <Transformation_Estimation/PCL3DRANSACTransformationEstimator.h>
 #include <Feature_Extraction/CVSURFFeatureExtractorAndDescriptor.h>
 #include <Feature_Extraction/CVSIFTFeatureExtractorAndDescriptor.h>
+#include <Feature_Extraction/CVORBFeatureExtractorAndDescriptor.h>
 #include <Feature_Matching/cvflannfeaturematcher.h>
 #include "Utilities/PCLUtilities.h"
 #include "Utilities/LogFile.h"
 #include "Utilities/TUMUtilities.h"
 #include <Map_Optimization/g2omapoptimizer.h>
+#include "robot_pose.h"
 
+namespace visual_slam {
 std::string machineName = "ivsystems";
 std::string datasetName = "rgbd_dataset_freiburg1_xyz";
 std::string datasetDIR = "/home/"+machineName+"/master_dataset/"+datasetName+"/";
@@ -37,7 +41,7 @@ std::string depthImages = datasetDIR + "depth/";
 std::string transformationMatrices = datasetDIR + "transformationMatricesPCL.txt";
 std::string featureMatching = datasetDIR + "matching/";
 std::string frames_matching = datasetDIR + "matching_frames.txt";
-std::string ground_truth_filename = datasetDIR + "groundtruth.txt";
+std::string ground_truth_filename = "/home/"+machineName+"/ros_workspaces/master/src/tum-tools-fork/data/rgbdslam/freiburg1_xyz-rgbdslam.txt";
 std::string result_filename = datasetDIR + "result.txt";
 static int numberOfEstimationFailure = 0;
 static int numberOfLoopClosure = 0;
@@ -51,9 +55,9 @@ visual_slam::PointCloudT::Ptr GeneratePointCloud(cv::Mat pImage)
     for(int colInd = 0 ; colInd < pImage.cols ; colInd++)
     {
       Z = pImage.at<u_int16_t>(rowInd , colInd) / factor;
-      PointT p;
-      p.x = ((colInd - cx) * Z )/fx;
-      p.y = ((rowInd - cy) * Z )/fy;
+      visual_slam::PointT p;
+      p.x = ((colInd - visual_slam::cx) * Z )/visual_slam::fx;
+      p.y = ((rowInd - visual_slam::cy) * Z )/visual_slam::fy;
       p.z = Z;
 
       cloud->points.push_back(p);
@@ -63,16 +67,16 @@ visual_slam::PointCloudT::Ptr GeneratePointCloud(cv::Mat pImage)
 void visualizePointCloud(visual_slam::PointCloudT::ConstPtr secondPC , visual_slam::PointCloudT::ConstPtr firstPC, visual_slam::PointCloudT::ConstPtr aligned)
 {
   pcl::visualization::PCLVisualizer visu("Point Cloud Visualizer");
-  visu.addPointCloud(secondPC,ColorHandlerT(secondPC, 0.0, 0.0, 255.0), "secondPC");
-  visu.addPointCloud(firstPC,ColorHandlerT(firstPC, 0.0, 255.0, 0.0), "firstPC");
-  visu.addPointCloud(aligned,ColorHandlerT(aligned, 255.0, 255.0, 255.0), "cloud");
+  visu.addPointCloud(secondPC,visual_slam::ColorHandlerT(secondPC, 0.0, 0.0, 255.0), "secondPC");
+  visu.addPointCloud(firstPC,visual_slam::ColorHandlerT(firstPC, 0.0, 255.0, 0.0), "firstPC");
+  visu.addPointCloud(aligned,visual_slam::ColorHandlerT(aligned, 255.0, 255.0, 255.0), "aligned");
   visu.spin();
 }
 void visualizePointCloud(visual_slam::PointCloudT::ConstPtr secondPC , visual_slam::PointCloudT::ConstPtr firstPC)
 {
   pcl::visualization::PCLVisualizer visu("Point Cloud Visualizer");
-  visu.addPointCloud(secondPC,ColorHandlerT(secondPC, 255.0, 255.0, 255.0), "secondPC");
-  visu.addPointCloud(firstPC,ColorHandlerT(firstPC, 0.0, 255.0, 0.0), "firstPC");
+  visu.addPointCloud(secondPC,visual_slam::ColorHandlerT(secondPC, 255.0, 255.0, 255.0), "secondPC");
+  visu.addPointCloud(firstPC,visual_slam::ColorHandlerT(firstPC, 0.0, 255.0, 0.0), "firstPC");
   visu.spin();
 }
 std::vector<FrameData> readDataset()
@@ -137,12 +141,13 @@ void showMatchingImage(std::vector<cv::DMatch> good_matches
   cv::waitKey(0);
 }
 
-class Trajectory_EstimationNodeHandler {
+class Trajectory_EstimationNodeHandler
+{
 public:
   Trajectory_EstimationNodeHandler(std::vector<FrameData>);
   bool estimateTransformBetween2Scenes(int previousFrameId, int currentFrameId, visual_slam::TFMatrix& transformation);
   void process();
-  void addToMap(visual_slam::Pose_6D newPose, int previousSceneInd, int currentSceneInd);
+  void addToMap(visual_slam::Pose_6D newPose,visual_slam::Pose_6D newTransformation, int previousSceneInd, int currentSceneInd);
   void detectLoopClosure(int);
 
   void publishOnTF(visual_slam::TFMatrix);
@@ -151,7 +156,7 @@ public:
   void publishFullPath(visual_slam::TFMatrix);
 
   void initializeGraphMap();
-  void map(visual_slam::TFMatrix robot_pose, int previousSceneInd, int currentSceneInd);
+  void map(visual_slam::TFMatrix robot_pose, visual_slam::TFMatrix lastTransformation,int previousSceneInd, int currentSceneInd);
 
 private:
   ros::NodeHandle _node;
@@ -160,7 +165,7 @@ private:
   std::unique_ptr<FeatureExtractorAndDescriptor> featureExtractorAndDescriptor;
   std::unique_ptr<FeatureMatcher> featureMatcher;
   PCLUtilities pclUTL;
-  std::unique_ptr<LogFile> log;
+  //  std::unique_ptr<LogFile> log;
   std::unique_ptr<TUMUtilities> utility;
 
   ros::Publisher odom_pub ;
@@ -176,9 +181,12 @@ private:
   void publishOptomizedPath();
   int searchForSimilerScene(int);
   visual_slam::Pose_6D convertToPose(visual_slam::TFMatrix);
+  void testingTransformation(visual_slam::PointCloudT::ConstPtr,visual_slam::PointCloudT::ConstPtr , visual_slam::TFMatrix&);
 };
 
-Trajectory_EstimationNodeHandler::Trajectory_EstimationNodeHandler(std::vector<FrameData> pFrames)
+}
+
+visual_slam::Trajectory_EstimationNodeHandler::Trajectory_EstimationNodeHandler(std::vector<FrameData> pFrames)
 {
   Frames = pFrames;
   tfEstimator = std::unique_ptr<PCL3DRANSACTransformationEstimator>(new PCL3DRANSACTransformationEstimator);
@@ -188,18 +196,17 @@ Trajectory_EstimationNodeHandler::Trajectory_EstimationNodeHandler(std::vector<F
   pose_pub = _node.advertise<geometry_msgs::PoseStamped>("robot_pose",50);
   path_pub = _node.advertise<nav_msgs::Path>("robot_path",50);
   fullPath.clear();
-  log = std::unique_ptr<LogFile>(new LogFile(datasetDIR));
+  //  log = std::unique_ptr<LogFile>(new LogFile(datasetDIR));
   utility = std::unique_ptr<TUMUtilities>( new TUMUtilities(ground_truth_filename , result_filename));
 
   mapOptimizer = std::unique_ptr<G2OMapOptimizer>(new G2OMapOptimizer);
   initializeGraphMap();
 }
-
-void Trajectory_EstimationNodeHandler::process()
+void visual_slam::Trajectory_EstimationNodeHandler::process()
 {
-  visual_slam::TFMatrix robot_pose = visual_slam::TFMatrix::Identity();
+  visual_slam::Robot_Pose robot_pose;
   int scenes_start = 0,
-      scenes_end = Frames.size();
+      scenes_end = 5;// Frames.size();
   int first_scn = scenes_start,
       second_scn = first_scn+1;
   int numberOfFramesThreshold = 10;
@@ -221,12 +228,13 @@ void Trajectory_EstimationNodeHandler::process()
       if(done)
       {
         ROS_INFO("Estimation Successed");
-        robot_pose = robot_pose * tf ;
-        Frames[second_scn].setRobotPose(robot_pose);
+        robot_pose *= tf ;
+        visual_slam::TFMatrix robot_pose_matrix = robot_pose.getTransformationMatrix();
+        Frames[second_scn].setRobotPose(robot_pose_matrix);
         ROS_INFO("Start Mapping");
-        map(robot_pose, first_scn, second_scn);
+        map(robot_pose_matrix, tf, first_scn, second_scn);
         ROS_INFO("Mapping finished");
-        first_scn++;
+        first_scn = second_scn;
         second_scn = first_scn + 1;
       }
       else
@@ -242,8 +250,7 @@ void Trajectory_EstimationNodeHandler::process()
   ROS_INFO("Number of loop transformation estimation failure %i" , numberOfEstimationFailure);
   utility->writingResults(v);
 }
-
-bool Trajectory_EstimationNodeHandler::estimateTransformBetween2Scenes(int previousFrameId, int currentFrameId, visual_slam::TFMatrix& transformation)
+bool visual_slam::Trajectory_EstimationNodeHandler::estimateTransformBetween2Scenes(int previousFrameId, int currentFrameId, visual_slam::TFMatrix& transformation)
 {
   std::vector<cv::KeyPoint> tPreviousKeypoints , tCurrentKeypoints ;
   bool done = false;
@@ -264,9 +271,17 @@ bool Trajectory_EstimationNodeHandler::estimateTransformBetween2Scenes(int previ
                                     tPreviousKeypointsPC,tCurrentKeypointsPC,
                                     tPreviousDescriptorsPC,tCurrentDescriptorsPC);
   done = tfEstimator->estimateTransformation(tPreviousKeypointsPC,tPreviousDescriptorsPC,tCurrentKeypointsPC,tCurrentDescriptorsPC,transformation,alignedPC);
+//  if(done)
+//    testingTransformation(tPreviousKeypointsPC , tCurrentKeypointsPC , transformation);
   return done;
 }
-void Trajectory_EstimationNodeHandler::publishOnTF(visual_slam::TFMatrix transformation)
+void visual_slam::Trajectory_EstimationNodeHandler::testingTransformation(visual_slam::PointCloudT::ConstPtr tPreviousKeypointsPC, visual_slam::PointCloudT::ConstPtr tCurrentKeypointsPC,visual_slam::TFMatrix & transformation)
+{
+  visual_slam::PointCloudT::Ptr transformed_cloud (new visual_slam::PointCloudT);
+  pcl::transformPointCloud(*tPreviousKeypointsPC, *transformed_cloud, transformation);
+  visualizePointCloud( tPreviousKeypointsPC, tCurrentKeypointsPC, transformed_cloud);
+}
+void visual_slam::Trajectory_EstimationNodeHandler::publishOnTF(visual_slam::TFMatrix transformation)
 {
   double x = static_cast<double>(transformation(0,3));
   double y = static_cast<double>(transformation(1,3));
@@ -288,7 +303,7 @@ void Trajectory_EstimationNodeHandler::publishOnTF(visual_slam::TFMatrix transfo
   transform.setRotation(tfqt);
   br.sendTransform(tf::StampedTransform(transform, ros::Time::now(), "odom", "base_link"));
 }
-void Trajectory_EstimationNodeHandler::publishOdometry(visual_slam::TFMatrix robot_pose)
+void visual_slam::Trajectory_EstimationNodeHandler::publishOdometry(visual_slam::TFMatrix robot_pose)
 {
   double x = static_cast<double>(robot_pose(0,3));
   double y = static_cast<double>(robot_pose(1,3));
@@ -319,7 +334,7 @@ void Trajectory_EstimationNodeHandler::publishOdometry(visual_slam::TFMatrix rob
   //publish the message
   odom_pub.publish(odom);
 }
-void Trajectory_EstimationNodeHandler::publishPose(visual_slam::TFMatrix robot_pose)
+void visual_slam::Trajectory_EstimationNodeHandler::publishPose(visual_slam::TFMatrix robot_pose)
 {
   double x = static_cast<double>(robot_pose(0,3));
   double y = static_cast<double>(robot_pose(1,3));
@@ -344,7 +359,7 @@ void Trajectory_EstimationNodeHandler::publishPose(visual_slam::TFMatrix robot_p
   pose_pub.publish(msg);
 
 }
-void Trajectory_EstimationNodeHandler::publishFullPath(visual_slam::TFMatrix robot_pose)
+void visual_slam::Trajectory_EstimationNodeHandler::publishFullPath(visual_slam::TFMatrix robot_pose)
 {
   double x = static_cast<double>(robot_pose(0,3));
   double y = static_cast<double>(robot_pose(1,3));
@@ -379,8 +394,7 @@ void Trajectory_EstimationNodeHandler::publishFullPath(visual_slam::TFMatrix rob
     path_pub.publish(pathMsg);
   }
 }
-
-void Trajectory_EstimationNodeHandler::initializeGraphMap()
+void visual_slam::Trajectory_EstimationNodeHandler::initializeGraphMap()
 {
   int initialNodeId , initialSceneInd = 0;
   visual_slam::TFMatrix initialize_tf = visual_slam::TFMatrix::Zero();
@@ -388,7 +402,7 @@ void Trajectory_EstimationNodeHandler::initializeGraphMap()
   mapOptimizer->addPoseToGraph(initial_Pose, initialNodeId);
   Frames[initialSceneInd].setGraphNodeId(initialNodeId);
 }
-visual_slam::Pose_6D Trajectory_EstimationNodeHandler::convertToPose(visual_slam::TFMatrix transformation)
+visual_slam::Pose_6D  visual_slam::Trajectory_EstimationNodeHandler::convertToPose(visual_slam::TFMatrix transformation)
 {
   visual_slam::Pose_6D tmp;
   Eigen::Matrix<double, 4, 4> tmpMat ;
@@ -399,7 +413,7 @@ visual_slam::Pose_6D Trajectory_EstimationNodeHandler::convertToPose(visual_slam
   return tmp;
 }
 
-void Trajectory_EstimationNodeHandler::detectLoopClosure(int currentSceneInd)
+void visual_slam::Trajectory_EstimationNodeHandler::detectLoopClosure(int currentSceneInd)
 {
   int similerInd = searchForSimilerScene(currentSceneInd);
   if(similerInd > 0)
@@ -416,17 +430,17 @@ void Trajectory_EstimationNodeHandler::detectLoopClosure(int currentSceneInd)
   }
   ROS_INFO("Loop closure finished -- ");
 }
-void Trajectory_EstimationNodeHandler::addToMap(visual_slam::Pose_6D newPose, int previousSceneInd, int currentSceneInd)
+void visual_slam::Trajectory_EstimationNodeHandler::addToMap(visual_slam::Pose_6D newPose,visual_slam::Pose_6D newTransformation, int previousSceneInd, int currentSceneInd)
 {
   int newNodeId;
   mapOptimizer->addPoseToGraph(newPose, newNodeId);
   Frames[currentSceneInd].setGraphNodeId( newNodeId);
   ROS_INFO("New Node : %i" , newNodeId);
   int prevNodeId = Frames[previousSceneInd].getGraphNodeId();
-  mapOptimizer->addEdge(newPose ,newNodeId ,prevNodeId);
+  mapOptimizer->addEdge(newTransformation ,newNodeId ,prevNodeId);
   ROS_INFO("New Edge : ( %i , %i )" , newNodeId , prevNodeId);
 }
-int Trajectory_EstimationNodeHandler::searchForSimilerScene(int currentSceneInd)
+int visual_slam::Trajectory_EstimationNodeHandler::searchForSimilerScene(int currentSceneInd)
 {
   ROS_INFO("Start search for similer to %i scene -- " , currentSceneInd);
   cv::Mat currentSceneFeatureDescriptors = Frames[currentSceneInd].getSceneFeatureDescriptors();
@@ -446,16 +460,17 @@ int Trajectory_EstimationNodeHandler::searchForSimilerScene(int currentSceneInd)
   }
   return -1;
 }
-void Trajectory_EstimationNodeHandler::updateGraph()
+void visual_slam::Trajectory_EstimationNodeHandler::updateGraph()
 {
   ROS_INFO("Graph updating stared --- ");
   mapOptimizer->optimize();
   ROS_INFO("Graph updated --- ");
 }
-void Trajectory_EstimationNodeHandler::map(visual_slam::TFMatrix robot_pose, int previousSceneInd, int currentSceneInd)
+void visual_slam::Trajectory_EstimationNodeHandler::map(visual_slam::TFMatrix robot_pose,visual_slam::TFMatrix lastTransformation, int previousSceneInd, int currentSceneInd)
 {
   visual_slam::Pose_6D newPose = convertToPose(robot_pose);
-  addToMap(newPose , previousSceneInd , currentSceneInd);
+  visual_slam::Pose_6D newTransformation = convertToPose(lastTransformation);
+  addToMap(newPose ,newTransformation, previousSceneInd , currentSceneInd);
   detectLoopClosure(currentSceneInd);
 }
 
@@ -463,10 +478,10 @@ int main(int argc, char** argv)
 {
   ros::init(argc, argv, "Transformation_Estimation_Node");
   ROS_INFO("Start reading dataset ---");
-  std::vector<FrameData> Frames = readDataset();
+  std::vector<visual_slam::FrameData> Frames = visual_slam::readDataset();
   ROS_INFO("Reading dataset finished with size %i" , (int)Frames.size());
 
-  std::unique_ptr<Trajectory_EstimationNodeHandler> nh(new Trajectory_EstimationNodeHandler(Frames));
+  std::unique_ptr<visual_slam::Trajectory_EstimationNodeHandler> nh(new visual_slam::Trajectory_EstimationNodeHandler(Frames));
   nh->process();
   return 0;
 }

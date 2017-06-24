@@ -3,7 +3,7 @@
 
 #include <Loop_Closure/LoopClosureDetector.h>
 #include <opencv2/features2d/features2d.hpp>
-
+namespace visual_slam {
 class CVFeatureBasedLoopClosureDetector : public LoopClosureDetector
 {
 public :
@@ -12,5 +12,5 @@ private:
   std::vector<std::pair<cv::Mat,int>> FeaturesMap;
   std::unique_ptr<FeatureMatcher> featureMatcher;
 };
-
+}
 #endif // CVFLANNFEATUREMATCHER_H

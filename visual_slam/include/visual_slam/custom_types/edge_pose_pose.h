@@ -14,6 +14,9 @@
 
 #include "vertex_pose.h"
 
+namespace visual_slam {
+
+
 //Template arguments: 6 Dimensions, store edge as Eigen::Isometry, edge is between VertexPose and VertexPose
 class EdgePosePose : public  g2o::BaseBinaryEdge<6, Eigen::Isometry3d, VertexPose, VertexPose>
 {
@@ -31,4 +34,5 @@ public:
   computeError               ();
 
 };
+}
 #endif // EDGE_POSE_POSE

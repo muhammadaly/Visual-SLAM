@@ -3,6 +3,8 @@
 #include <g2o/core/base_vertex.h>
 #include <GL/gl.h>
 
+namespace visual_slam {
+
 
 inline void drawPoint(const float size, const Eigen::Vector3d & point)
 {
@@ -54,5 +56,6 @@ inline void drawCoordinateSys(float size){
   glEnd();
 
 
+}
 }
 

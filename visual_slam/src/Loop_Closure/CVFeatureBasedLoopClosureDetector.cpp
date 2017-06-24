@@ -1,6 +1,6 @@
 #include <Feature_Matching/cvflannfeaturematcher.h>
 
-void CVFLANNFeatureMatcher::matching2ImageFeatures(cv::Mat previousImageDescriptors, cv::Mat currentImageDescriptors, std::vector<cv::DMatch> & matches)
+void visual_slam::CVFLANNFeatureMatcher::matching2ImageFeatures(cv::Mat previousImageDescriptors, cv::Mat currentImageDescriptors, std::vector<cv::DMatch> & matches)
 {
   if (!currentImageDescriptors.empty() && !previousImageDescriptors.empty()) {
     if (currentImageDescriptors.type() != CV_32F) {
@@ -15,7 +15,7 @@ void CVFLANNFeatureMatcher::matching2ImageFeatures(cv::Mat previousImageDescript
   }
 }
 
-void CVFLANNFeatureMatcher::filterMatches(std::vector<cv::DMatch> matches, std::vector<cv::DMatch> & good_matches)
+void visual_slam::CVFLANNFeatureMatcher::filterMatches(std::vector<cv::DMatch> matches, std::vector<cv::DMatch> & good_matches)
 {
   double max_dist = 0;
   double min_dist = 100;

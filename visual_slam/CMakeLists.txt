@@ -60,6 +60,7 @@ link_directories(${PCL_LIBRARY_DIRS} /usr/local/lib)
 add_definitions(${PCL_DEFINITIONS})
 
 set(SOURCES src/framedata.cpp
+    src/robot_pose.cpp
     src/Feature_Extraction/CVORBFeatureExtractorAndDescriptor.cpp
     src/Feature_Extraction/CVSURFFeatureExtractorAndDescriptor.cpp
     src/Feature_Extraction/CVSIFTFeatureExtractorAndDescriptor.cpp
@@ -78,6 +79,7 @@ set(SOURCES src/framedata.cpp
     src/Map_Optimization/g2omapoptimizer.cpp)
 
 set(HEADERS include/visual_slam/framedata.h
+    include/visual_slam/robot_pose.h
     include/visual_slam/Feature_Extraction/FeatureExtractorAndDescriptor.h
     include/visual_slam/Feature_Extraction/CVORBFeatureExtractorAndDescriptor.h
     include/visual_slam/Feature_Extraction/CVSURFFeatureExtractorAndDescriptor.h
@@ -116,4 +118,7 @@ set(HEADERS include/visual_slam/framedata.h
 ###------------------------------------------------------
 add_executable(Trajectory_Estimation src/Trajectory_Estimation.cpp ${SOURCES} ${HEADERS})
 target_link_libraries(Trajectory_Estimation ${catkin_LIBRARIES} ${OpenCV_LIBS} ${PCL_LIBRARIES} ${G2O_LIBS})
+#------------------------------------------------------
+add_executable(transformation_tests src/transformation_tests.cpp ${SOURCES} ${HEADERS})
+target_link_libraries(transformation_tests ${catkin_LIBRARIES} ${OpenCV_LIBS} ${PCL_LIBRARIES} ${G2O_LIBS})
 #------------------------------------------------------

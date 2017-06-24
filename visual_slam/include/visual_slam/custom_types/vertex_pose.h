@@ -8,6 +8,7 @@
 #include "g2o/types/slam3d/isometry3d_mappings.h"
 
 #include "math_functions.hpp"
+namespace visual_slam {
 
 /**
  * \brief 3D pose Vertex, represented as an Isometry3d
@@ -58,5 +59,5 @@
     protected:
       int _numOplusCalls;     ///< store how often opluse was called to trigger orthogonaliation of the rotation matrix
   };
-
+}
 #endif

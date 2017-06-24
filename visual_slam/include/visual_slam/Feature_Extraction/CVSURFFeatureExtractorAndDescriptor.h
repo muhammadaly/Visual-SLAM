@@ -5,7 +5,7 @@
 #include "opencv2/features2d.hpp"
 #include "opencv2/xfeatures2d.hpp"
 #include "opencv2/xfeatures2d/nonfree.hpp"
-
+namespace visual_slam {
 class CVSURFFeatureExtractorAndDescriptor : public FeatureExtractorAndDescriptor
 {
 public:
@@ -14,5 +14,5 @@ public:
 private:
     cv::Ptr<cv::xfeatures2d::SURF>  surf ;
 };
-
+}
 #endif // CVSURFFEATUREEXTRACTORANDDESCRIPTOR_H

@@ -11,9 +11,10 @@
 #include "g2o/core/optimization_algorithm_gauss_newton.h"
 #include "g2o/solvers/csparse/linear_solver_csparse.h"
 
-#include <custom_types/vertex_pose.h>
-#include <custom_types/edge_pose_pose.h>
+#include "custom_types/vertex_pose.h"
+#include "custom_types/edge_pose_pose.h"
 
+namespace visual_slam {
 typedef g2o::BlockSolver< g2o::BlockSolverTraits<-1, -1> >  SlamBlockSolver;
 typedef g2o::LinearSolverCSparse<SlamBlockSolver::PoseMatrixType> SlamLinearSolver;
 
@@ -42,5 +43,5 @@ private:
   int unique_id;
 };
 static UniqueId uniqueId;
-
+}
 #endif // G2OMAPOPTIMIZER_H

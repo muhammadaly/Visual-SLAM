@@ -7,6 +7,7 @@
   /**
    * \brief Vertex for a tracked point in space
    */
+namespace visual_slam {
   class VertexLandmarkXYZ : public g2o::BaseVertex<3, Eigen::Vector3d>
   {
     public:
@@ -23,7 +24,7 @@
       }
 
   };
-
+}
 #ifdef G2O_HAVE_OPENGL
   /**
    * \brief visualize a 3D point

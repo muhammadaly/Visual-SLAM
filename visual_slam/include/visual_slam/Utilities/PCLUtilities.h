@@ -3,7 +3,7 @@
 #include "definitions.h"
 #include "framedata.h"
 
-
+namespace visual_slam {
 class PCLUtilities{
 public:
   PCLUtilities();
@@ -25,3 +25,4 @@ public:
                                   visual_slam::PointCloudT::Ptr previousKeypointsPointCloud, visual_slam::PointCloudT::Ptr currentKeypointsPointCloud,
                                   visual_slam::FeatureCloudT::Ptr previousFeaturesPointCloud, visual_slam::FeatureCloudT::Ptr currentFeaturesPointCloud);
 };
+}

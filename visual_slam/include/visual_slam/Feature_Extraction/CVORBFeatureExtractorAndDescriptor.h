@@ -3,7 +3,7 @@
 
 #include "FeatureExtractorAndDescriptor.h"
 #include <opencv2/features2d/features2d.hpp>
-
+namespace visual_slam {
 class CVORBFeatureExtractorAndDescriptor : public FeatureExtractorAndDescriptor
 {
 public:
@@ -12,5 +12,5 @@ public:
 private:
     cv::Ptr<cv::ORB> orb ;
 };
-
+}
 #endif // CVORBFEATUREEXTRACTORANDDESCRIPTOR_H

@@ -4,12 +4,10 @@
 #include "g2o/stuff/misc.h"
 #include "g2o/stuff/macros.h"
 
-#include "g2o_tutorial_slam2d_api.h"
-
 #include <Eigen/Core>
 #include <Eigen/Geometry>
 
-#include "definations.h"
+#include "definitions.h"
 
 namespace visual_slam {
 
@@ -19,14 +17,22 @@ public:
   Robot_Pose(double Tx, double Ty, double Tz,
       double Rw, double Rroll, double Rpitch);
 
-  Robot_Pose operator * (const visual_slam::TFMatrix&) const;
+  Robot_Pose& operator *= (const visual_slam::TFMatrix&);
+  void transform(const visual_slam::TFMatrix&);
+
+  void setRotationAngles(visual_slam::RobotRotationAngles3D);
+  void setTranslationVector(visual_slam::RobotTranslation3D);
+  visual_slam::RobotPose6D getRobotPose();
+  visual_slam::TFMatrix getTransformationMatrix();
 
 private:
   visual_slam::RobotTranslation3D _T;
   visual_slam::RobotRotationAngles3D _R;
 
-  visual_slam::RobotRotationAngles3D getRotationMatrixFromHomogeneousTransformationMatrix(const visual_slam::TFMatrix&);
+  visual_slam::RobotRotationMatrix3D getRotationMatrixFromHomogeneousTransformationMatrix(const visual_slam::TFMatrix&);
   visual_slam::RobotTranslation3D getTranslationVectorFromHomogeneousTransformationMatrix(const visual_slam::TFMatrix&);
+  visual_slam::RobotRotationAngles3D getRotationAnglesFromRotationMatrix(const visual_slam::RobotRotationMatrix3D&);
+  visual_slam::RobotRotationMatrix3D getRotationMatrixFromRotationAngles(const visual_slam::RobotRotationAngles3D&);
 
 };
 

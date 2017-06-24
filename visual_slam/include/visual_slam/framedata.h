@@ -7,7 +7,7 @@
 #include "opencv2/highgui/highgui.hpp"
 #include "opencv2/imgproc/imgproc.hpp"
 #include "definitions.h"
-
+namespace visual_slam {
 class FrameData
 {
 public:
@@ -38,5 +38,5 @@ private:
     int GraphNodeId;
     visual_slam::TFMatrix RobotPose;
 };
-
+}
 #endif // FRAMEDATA_H

@@ -4,6 +4,8 @@
 #include <Feature_Matching/FeatureMatcher.h>
 #include <opencv2/features2d/features2d.hpp>
 
+namespace visual_slam {
+
 class CVFLANNFeatureMatcher : public FeatureMatcher
 {
   // FeatureMatcher interface
@@ -14,5 +16,5 @@ private :
 
   void filterMatches(std::vector<cv::DMatch> , std::vector<cv::DMatch>&);
 };
-
+}
 #endif // CVFLANNFEATUREMATCHER_H

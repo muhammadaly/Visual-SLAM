@@ -13,6 +13,7 @@
 #include <Eigen/Core>
 #include <Eigen/LU>
 
+namespace visual_slam {
 class CameraProjection : public g2o::Parameter
 {
 public:
@@ -46,5 +47,5 @@ public:
 
   Eigen::Matrix3d K_;
 };
-
+}
 #endif

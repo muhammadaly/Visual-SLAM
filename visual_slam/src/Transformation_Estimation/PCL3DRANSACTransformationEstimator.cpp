@@ -1,6 +1,6 @@
 #include <Transformation_Estimation/PCL3DRANSACTransformationEstimator.h>
 
-bool PCL3DRANSACTransformationEstimator::estimateTransformation(visual_slam::PointCloudT::Ptr firstPC, visual_slam::FeatureCloudT::Ptr firstPCFeatures, visual_slam::PointCloudT::Ptr secondPC,
+bool visual_slam::PCL3DRANSACTransformationEstimator::estimateTransformation(visual_slam::PointCloudT::Ptr firstPC, visual_slam::FeatureCloudT::Ptr firstPCFeatures, visual_slam::PointCloudT::Ptr secondPC,
                                                                 visual_slam::FeatureCloudT::Ptr secondPCFeatures, visual_slam::TFMatrix & transformation,visual_slam::PointCloudT::Ptr& alignedPC)
 {
 

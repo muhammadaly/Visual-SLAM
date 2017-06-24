@@ -7,6 +7,8 @@
 
 #include "EigenUtilites.h"
 
+namespace visual_slam {
+
 class TUMUtilities{
 
 public :
@@ -20,5 +22,7 @@ private:
 
   std::vector<std::string> getTimeStamps();
 };
+
+}
 
 #endif // TUMUTILITIES_H
