@@ -12,19 +12,14 @@ visual_slam::Robot_Pose::Robot_Pose(double Tx, double Ty, double Tz, double Rrol
 }
 visual_slam::Robot_Pose& visual_slam::Robot_Pose::operator *= (const visual_slam::TFMatrix& transformation)
 {
-  visual_slam::RobotRotationMatrix3D new_rotation_mat = getRotationMatrixFromHomogeneousTransformationMatrix(transformation);
-  visual_slam::RobotTranslation3D new_translation_vec = getTranslationVectorFromHomogeneousTransformationMatrix(transformation);
-  visual_slam::RobotRotationMatrix3D current_rotation_mat = getRotationMatrixFromRotationAngles(_R);
-
-  current_rotation_mat = (new_rotation_mat * current_rotation_mat);
-  _R = getRotationAnglesFromRotationMatrix(current_rotation_mat);
-  _T = (new_rotation_mat * new_translation_vec) + _T;
+  transform(transformation);
   return *this;
 }
 void visual_slam::Robot_Pose::transform(const visual_slam::TFMatrix& transformation)
 {
-  visual_slam::RobotRotationMatrix3D new_rotation_mat = getRotationMatrixFromHomogeneousTransformationMatrix(transformation);
-  visual_slam::RobotTranslation3D new_translation_vec = getTranslationVectorFromHomogeneousTransformationMatrix(transformation);
+  visual_slam::TFMatrix Inverse_transformation = getInverseTransformation(transformation);
+  visual_slam::RobotRotationMatrix3D new_rotation_mat = getRotationMatrixFromHomogeneousTransformationMatrix(Inverse_transformation);
+  visual_slam::RobotTranslation3D new_translation_vec = getTranslationVectorFromHomogeneousTransformationMatrix(Inverse_transformation);
   visual_slam::RobotRotationMatrix3D current_rotation_mat = getRotationMatrixFromRotationAngles(_R);
 
   current_rotation_mat = (new_rotation_mat * current_rotation_mat);
@@ -137,6 +132,29 @@ visual_slam::TFMatrix visual_slam::Robot_Pose::getTransformationMatrix()
   tf(3,3) = 1.0;
   return tf;
 }
+
+visual_slam::TFMatrix visual_slam::Robot_Pose::getTransformationMatrix(const visual_slam::RobotRotationMatrix3D& rotation_mat, const visual_slam::RobotTranslation3D & translation_vec)
+{
+  visual_slam::TFMatrix tf = visual_slam::TFMatrix::Zero();
+
+  tf(0,0) = rotation_mat(0,0);
+  tf(0,1) = rotation_mat(0,1);
+  tf(0,2) = rotation_mat(0,2);
+  tf(0,3) = translation_vec(0);
+
+  tf(1,0) = rotation_mat(1,0);
+  tf(1,1) = rotation_mat(1,1);
+  tf(1,2) = rotation_mat(1,2);
+  tf(1,3) = translation_vec(1);
+
+  tf(2,0) = rotation_mat(2,0);
+  tf(2,1) = rotation_mat(2,1);
+  tf(2,2) = rotation_mat(2,2);
+  tf(2,3) = translation_vec(2);
+
+  tf(3,3) = 1.0;
+  return tf;
+}
 void visual_slam::Robot_Pose::setRotationAngles(visual_slam::RobotRotationAngles3D r)
 {
   _R = r;
@@ -144,4 +162,26 @@ void visual_slam::Robot_Pose::setRotationAngles(visual_slam::RobotRotationAngles
 void visual_slam::Robot_Pose::setTranslationVector(visual_slam::RobotTranslation3D t)
 {
   _T = t;
+}
+
+visual_slam::TFMatrix visual_slam::Robot_Pose::getInverseTransformation(const visual_slam::TFMatrix & transformation)
+{
+  visual_slam::RobotRotationMatrix3D new_rotation_mat = getRotationMatrixFromHomogeneousTransformationMatrix(transformation);
+  visual_slam::RobotTranslation3D new_translation_vec = getTranslationVectorFromHomogeneousTransformationMatrix(transformation);
+  visual_slam::RobotRotationMatrix3D Inverse_new_rotation_mat = getInverseRotation(new_rotation_mat);
+  visual_slam::RobotTranslation3D Inverse_new_translation_vec = getInverseTranslation(new_translation_vec, Inverse_new_rotation_mat);
+  return getTransformationMatrix(Inverse_new_rotation_mat,Inverse_new_translation_vec);
+}
+
+visual_slam::RobotRotationMatrix3D visual_slam::Robot_Pose::getInverseRotation(const visual_slam::RobotRotationMatrix3D & rotationMatrix)
+{
+  return rotationMatrix.transpose();
+}
+
+visual_slam::RobotTranslation3D visual_slam::Robot_Pose::getInverseTranslation(const visual_slam::RobotTranslation3D & translationVector, visual_slam::RobotRotationMatrix3D & inverseRotationMatrix)
+{
+  visual_slam::RobotTranslation3D InverseTranslation;
+  inverseRotationMatrix *= -1.0;
+  InverseTranslation = inverseRotationMatrix * translationVector;
+  return InverseTranslation;
 }

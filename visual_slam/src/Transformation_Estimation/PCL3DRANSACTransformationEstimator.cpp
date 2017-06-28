@@ -3,13 +3,13 @@
 bool visual_slam::PCL3DRANSACTransformationEstimator::estimateTransformation(visual_slam::PointCloudT::Ptr firstPC, visual_slam::FeatureCloudT::Ptr firstPCFeatures, visual_slam::PointCloudT::Ptr secondPC,
                                                                 visual_slam::FeatureCloudT::Ptr secondPCFeatures, visual_slam::TFMatrix & transformation,visual_slam::PointCloudT::Ptr& alignedPC)
 {
-
+  const float leaf = 0.005f;
   int MaximumIterations = 50000; // Number of RANSAC iterations
   int NumberOfSamples = 3; // Number of points to sample for generating/prerejecting a pose
   int CorrespondenceRandomness = 5; // Number of nearest features to use
   float SimilarityThreshold = 0.9f; // Polygonal edge length similarity threshold
-  float MaxCorrespondenceDistance = 0.009f; // Inlier threshold 0.015
-  float InlierFraction = 0.1f; // Required inlier fraction for accepting a pose hypothesis
+  float MaxCorrespondenceDistance = 2.5f* leaf; // Inlier threshold 0.015
+  float InlierFraction = 0.25f; // Required inlier fraction for accepting a pose hypothesis
 
   pcl::SampleConsensusPrerejective<PointT,PointT,FeatureT> align;
   align.setInputSource(secondPC);

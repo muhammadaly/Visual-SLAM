@@ -24,6 +24,7 @@ public:
   void setTranslationVector(visual_slam::RobotTranslation3D);
   visual_slam::RobotPose6D getRobotPose();
   visual_slam::TFMatrix getTransformationMatrix();
+  visual_slam::TFMatrix getTransformationMatrix(const visual_slam::RobotRotationMatrix3D&, const visual_slam::RobotTranslation3D&);
 
 private:
   visual_slam::RobotTranslation3D _T;
@@ -31,6 +32,10 @@ private:
 
   visual_slam::RobotRotationMatrix3D getRotationMatrixFromHomogeneousTransformationMatrix(const visual_slam::TFMatrix&);
   visual_slam::RobotTranslation3D getTranslationVectorFromHomogeneousTransformationMatrix(const visual_slam::TFMatrix&);
+  visual_slam::TFMatrix getInverseTransformation(const visual_slam::TFMatrix&);
+  visual_slam::RobotRotationMatrix3D getInverseRotation(const visual_slam::RobotRotationMatrix3D&);
+  visual_slam::RobotTranslation3D getInverseTranslation(const visual_slam::RobotTranslation3D&, visual_slam::RobotRotationMatrix3D&);
+
   visual_slam::RobotRotationAngles3D getRotationAnglesFromRotationMatrix(const visual_slam::RobotRotationMatrix3D&);
   visual_slam::RobotRotationMatrix3D getRotationMatrixFromRotationAngles(const visual_slam::RobotRotationAngles3D&);
 

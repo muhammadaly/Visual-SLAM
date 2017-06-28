@@ -26,7 +26,6 @@ visual_slam::FTranslatonVec visual_slam::EigenUtilites::ExtractTranslationVector
   translationVec(2) = transformationMatrix(2,3);
   return translationVec;
 }
-
 visual_slam::EigenUtilites::EigenUtilites()
 {
 

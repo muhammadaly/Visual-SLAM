@@ -29,4 +29,5 @@ void visual_slam::CVFLANNFeatureMatcher::filterMatches(std::vector<cv::DMatch> m
   for (int i = 0; i < matches.size(); i++) {
     if (matches[i].distance < thr) { good_matches.push_back(matches[i]); }
   }
+  std::sort(good_matches.begin(), good_matches.end());
 }

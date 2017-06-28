@@ -10,7 +10,7 @@ int main(int argc, char** argv)
 //  visual_slam::Robot_Pose pose(0,0,0,0,0.785398,0);
 
   visual_slam::Robot_Pose pose;
-  visual_slam::RobotRotationAngles3D angles(0,0.785398,0);
+  visual_slam::RobotRotationAngles3D angles(0,0,1.5708);
   visual_slam::RobotTranslation3D translation(0,0,0);
   pose.setRotationAngles(angles);
   pose.setTranslationVector(translation);
@@ -18,11 +18,9 @@ int main(int argc, char** argv)
   pose = visual_slam::Robot_Pose(0,0,0,0,0,0);
 
   std::cout<<pose.getRobotPose()<<std::endl;
-  std::cout<<pose.getTransformationMatrix()<<std::endl;
-  std::cout<<tf<<std::endl;
   pose *= tf;
+  std::cout<<"After Transformation -----"<<std::endl;
   std::cout<<pose.getRobotPose()<<std::endl;
-  std::cout<<pose.getTransformationMatrix()<<std::endl;
 
   ros::spin();
   return 0;

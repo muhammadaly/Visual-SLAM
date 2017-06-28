@@ -17,6 +17,7 @@ namespace visual_slam {
   typedef pcl::Histogram<SIFTFeatureVectorLength> FeatureT;
   typedef pcl::PointCloud<FeatureT> FeatureCloudT;
   typedef pcl::visualization::PointCloudColorHandlerCustom<PointT> ColorHandlerT;
+  typedef Eigen::Matrix4f TFMatrix;
   typedef Eigen::Matrix<double, 4, 4> DTFMatrix;
   typedef Eigen::Matrix3f FRotationMatrix;
   typedef Eigen::Vector3f FTranslatonVec;

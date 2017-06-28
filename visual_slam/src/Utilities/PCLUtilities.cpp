@@ -36,7 +36,7 @@ void visual_slam::PCLUtilities::getKeypointsAndDescriptors(std::vector<cv::DMatc
       visual_slam::FeatureT PCLDescriptor;
       for(int ind = 0 ; ind < previousDescriptors.cols; ind++)
       {
-          PCLDescriptor.histogram[ind] = previousDescriptors.at<unsigned char>(matches[matchInd].queryIdx,ind);
+          PCLDescriptor.histogram[ind] = previousDescriptors.at<float>(matches[matchInd].trainIdx,ind);
       }
       previousFeaturesPointCloud->points.push_back(PCLDescriptor);
 
@@ -54,7 +54,7 @@ void visual_slam::PCLUtilities::getKeypointsAndDescriptors(std::vector<cv::DMatc
       visual_slam::FeatureT PCLDescriptor2;
       for(int ind = 0 ; ind < currentDescriptors.cols; ind++)
       {
-          PCLDescriptor2.histogram[ind] = currentDescriptors.at<unsigned char>(matches[matchInd].queryIdx,ind);
+          PCLDescriptor2.histogram[ind] = currentDescriptors.at<float>(matches[matchInd].queryIdx,ind);
       }
       currentFeaturesPointCloud->points.push_back(PCLDescriptor2);
 
