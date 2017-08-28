@@ -3,6 +3,7 @@
 bool visual_slam::PCL3DRANSACTransformationEstimator::estimateTransformation(visual_slam::PointCloudT::Ptr firstPC, visual_slam::FeatureCloudT::Ptr firstPCFeatures, visual_slam::PointCloudT::Ptr secondPC,
                                                                 visual_slam::FeatureCloudT::Ptr secondPCFeatures, visual_slam::TFMatrix & transformation,visual_slam::PointCloudT::Ptr& alignedPC)
 {
+
   const float leaf = 0.005f;
   int MaximumIterations = 50000; // Number of RANSAC iterations
   int NumberOfSamples = 3; // Number of points to sample for generating/prerejecting a pose
@@ -16,6 +17,7 @@ bool visual_slam::PCL3DRANSACTransformationEstimator::estimateTransformation(vis
   align.setSourceFeatures(secondPCFeatures);
   align.setInputTarget(firstPC);
   align.setTargetFeatures(firstPCFeatures);
+
   align.setMaximumIterations(MaximumIterations); // Number of RANSAC iterations
   align.setNumberOfSamples(NumberOfSamples); // Number of points to sample for generating/prerejecting a pose
   align.setCorrespondenceRandomness(CorrespondenceRandomness); // Number of nearest features to use
@@ -23,6 +25,7 @@ bool visual_slam::PCL3DRANSACTransformationEstimator::estimateTransformation(vis
   align.setMaxCorrespondenceDistance(MaxCorrespondenceDistance); // Inlier threshold
   align.setInlierFraction(InlierFraction); // Required inlier fraction for accepting a pose hypothesis
   align.align(*alignedPC);
+
   if(align.hasConverged())
   {
     transformation = align.getFinalTransformation();

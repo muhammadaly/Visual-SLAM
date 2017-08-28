@@ -156,10 +156,10 @@ public:
   void addToMap(visual_slam::Pose_6D newPose,visual_slam::Pose_6D newTransformation, int previousSceneInd, int currentSceneInd);
   void detectLoopClosure(int);
 
-  void publishOnTF(visual_slam::TFMatrix);
-  void publishOdometry(visual_slam::TFMatrix);
-  void publishPose(visual_slam::TFMatrix);
-  void publishFullPath(visual_slam::TFMatrix);
+  void publishOnTF(visual_slam::Robot_Pose);
+  void publishOdometry(visual_slam::Robot_Pose);
+  void publishPose(visual_slam::Robot_Pose);
+  void publishFullPath(visual_slam::Robot_Pose);
 
   void initializeGraphMap();
   void map(visual_slam::TFMatrix robot_pose, visual_slam::TFMatrix lastTransformation,int previousSceneInd, int currentSceneInd);
@@ -223,9 +223,9 @@ void visual_slam::Trajectory_EstimationNodeHandler::accumilatePC(visual_slam::Po
 
 void visual_slam::Trajectory_EstimationNodeHandler::process()
 {
-  visual_slam::Robot_Pose robot_pose;
+  visual_slam::Robot_Pose robot_pose(0.0,0.0,0.0,0.0,0.0,0.0);
   int scenes_start = 0,
-      scenes_end = 30;//Frames.size()-1;
+      scenes_end = Frames.size()-1;
   int first_scn = scenes_start,
       second_scn = first_scn+1;
   int numberOfFramesThreshold = 10;
@@ -246,13 +246,18 @@ void visual_slam::Trajectory_EstimationNodeHandler::process()
       done = estimateTransformBetween2Scenes(first_scn,second_scn,tf);
       if(done)
       {
-        ROS_INFO("Estimation Successed");
-        robot_pose *= tf ;
-        visual_slam::TFMatrix robot_pose_matrix = robot_pose.getTransformationMatrix();
-        Frames[second_scn].setRobotPose(robot_pose_matrix);
-        ROS_INFO("Start Mapping");
-        map(robot_pose_matrix, tf, first_scn, second_scn);
-        ROS_INFO("Mapping finished");
+//        ROS_INFO("Estimation Successed");
+        visual_slam::RobotPose6D PoseVec = robot_pose.getRobotPose();
+        ROS_INFO("%f %f %f %f %f %f", PoseVec(0), PoseVec(1), PoseVec(2), PoseVec(3), PoseVec(4), PoseVec(5));
+        visual_slam::TFMatrix Inverse_transformation = robot_pose.getInverseTransformation(tf);
+
+        robot_pose *= Inverse_transformation ;
+
+        publishOnTF(robot_pose);
+        publishOdometry(robot_pose);
+//        ROS_INFO("Start Mapping");
+//        map(robot_pose_matrix, tf, first_scn, second_scn);
+//        ROS_INFO("Mapping finished");
         first_scn = second_scn;
         second_scn = first_scn + 1;
       }
@@ -283,20 +288,19 @@ bool visual_slam::Trajectory_EstimationNodeHandler::estimateTransformBetween2Sce
   featureExtractorAndDescriptor->computeDescriptors(Frames[currentFrameId] , tCurrentKeypoints , tCurrentDescriptors);
   Frames[previousFrameId].setSceneFeatureDescriptors(tPreviousDescriptors);
   Frames[currentFrameId].setSceneFeatureDescriptors(tCurrentDescriptors);
-
   featureMatcher->matching2ImageFeatures(tPreviousDescriptors , tCurrentDescriptors,matches);
-  //ROS_INFO("Number Of Matches : %i" , matches.size());
   pclUTL.getKeypointsAndDescriptors(matches,tPreviousKeypoints,tCurrentKeypoints,
                                     tPreviousDescriptors,tCurrentDescriptors,Frames[previousFrameId],Frames[currentFrameId],
                                     tPreviousKeypointsPC,tCurrentKeypointsPC,
                                     tPreviousDescriptorsPC,tCurrentDescriptorsPC);
   done = tfEstimator->estimateTransformation(tPreviousKeypointsPC,tPreviousDescriptorsPC,tCurrentKeypointsPC,tCurrentDescriptorsPC,transformation,alignedPC);
-  if(done)
-  {
-    visual_slam::PointCloudT::Ptr newPC = visual_slam::GeneratePointCloud(Frames[currentFrameId].getDepthMatrix());
-    accumilatePC(newPC,transformation);
+
+//  if(done)
+//  {
+//    visual_slam::PointCloudT::Ptr newPC = visual_slam::GeneratePointCloud(Frames[currentFrameId].getDepthMatrix());
+    //accumilatePC(newPC,transformation);
 //    testingTransformation(tPreviousKeypointsPC , tCurrentKeypointsPC , transformation);
-  }
+//  }
   return done;
 }
 void visual_slam::Trajectory_EstimationNodeHandler::testingTransformation(visual_slam::PointCloudT::ConstPtr tPreviousKeypointsPC, visual_slam::PointCloudT::ConstPtr tCurrentKeypointsPC,visual_slam::TFMatrix & transformation)
@@ -305,105 +309,74 @@ void visual_slam::Trajectory_EstimationNodeHandler::testingTransformation(visual
   pcl::transformPointCloud(*tPreviousKeypointsPC, *transformed_cloud, transformation);
   visualizePointCloud( tPreviousKeypointsPC, tCurrentKeypointsPC, transformed_cloud);
 }
-void visual_slam::Trajectory_EstimationNodeHandler::publishOnTF(visual_slam::TFMatrix transformation)
+void visual_slam::Trajectory_EstimationNodeHandler::publishOnTF(visual_slam::Robot_Pose robot_pose)
 {
-  double x = static_cast<double>(transformation(0,3));
-  double y = static_cast<double>(transformation(1,3));
-  double z = static_cast<double>(transformation(2,3));
+  visual_slam::RobotPose6D PoseVec = robot_pose.getRobotPose();
+  geometry_msgs::Quaternion odom_quat = tf::createQuaternionMsgFromRollPitchYaw(PoseVec(3), PoseVec(4), PoseVec(5));
 
-  tf::Vector3 origin;
-  origin.setValue(x,y,z);
+  geometry_msgs::TransformStamped odom_trans;
+  odom_trans.header.stamp = ros::Time::now();
+  odom_trans.header.frame_id = "base_link";
+  odom_trans.child_frame_id = "odom";
 
-  tf::Matrix3x3 tf3d;
-  tf3d.setValue(static_cast<double>(transformation(0,0)), static_cast<double>(transformation(0,1)), static_cast<double>(transformation(0,2)),
-                static_cast<double>(transformation(1,0)), static_cast<double>(transformation(1,1)), static_cast<double>(transformation(1,2)),
-                static_cast<double>(transformation(2,0)), static_cast<double>(transformation(2,1)), static_cast<double>(transformation(2,2)));
-  tf::Quaternion tfqt;
-  tf3d.getRotation(tfqt);
-  tfqt = tfqt.normalize();
+  odom_trans.transform.translation.x = PoseVec(0);
+  odom_trans.transform.translation.y = PoseVec(1);
+  odom_trans.transform.translation.z = PoseVec(2);
+  odom_trans.transform.rotation = odom_quat;
 
-  tf::Transform transform;
-  transform.setOrigin(origin);
-  transform.setRotation(tfqt);
-  br.sendTransform(tf::StampedTransform(transform, ros::Time::now(), "odom", "base_link"));
+  //send the transform
+  br.sendTransform(odom_trans);
 }
-void visual_slam::Trajectory_EstimationNodeHandler::publishOdometry(visual_slam::TFMatrix robot_pose)
+void visual_slam::Trajectory_EstimationNodeHandler::publishOdometry(visual_slam::Robot_Pose robot_pose)
 {
-  double x = static_cast<double>(robot_pose(0,3));
-  double y = static_cast<double>(robot_pose(1,3));
-  double z = static_cast<double>(robot_pose(2,3));
-
-  double qw = sqrt(1.0 + robot_pose(0,0) + robot_pose(1,1) + robot_pose(2,2)) / 2.0;
-  double w4 = 4.0 * qw ;
-  double qx = (robot_pose(2,1) - robot_pose(1,2)) / w4;
-  double qy = (robot_pose(0,2) - robot_pose(2,0)) / w4;
-  double qz = (robot_pose(1,0) - robot_pose(0,1)) / w4;
+  visual_slam::RobotPose6D PoseVec = robot_pose.getRobotPose();
 
   nav_msgs::Odometry odom;
-
-
   odom.header.stamp = ros::Time::now();
-  odom.header.frame_id = "odom";
-  odom.child_frame_id = "base_link";
+  odom.header.frame_id = "base_link";
 
   //set the position
-  odom.pose.pose.position.x = x;
-  odom.pose.pose.position.y = y;
-  odom.pose.pose.position.z = z;
-  odom.pose.pose.orientation.w = w4;
-  odom.pose.pose.orientation.x = qx;
-  odom.pose.pose.orientation.y = qy;
-  odom.pose.pose.orientation.z = qz;
+  geometry_msgs::Quaternion odom_quat = tf::createQuaternionMsgFromRollPitchYaw(PoseVec(3), PoseVec(4), PoseVec(5));
+  odom.pose.pose.position.x = PoseVec(0);
+  odom.pose.pose.position.y = PoseVec(1);
+  odom.pose.pose.position.z = PoseVec(3);
+  odom.pose.pose.orientation = odom_quat;
+
+  //set the velocity
+  odom.child_frame_id = "odom";
+  //odom.twist.twist.linear.x = vx;
+  //odom.twist.twist.linear.y = vy;
+  //odom.twist.twist.angular.z = vth;
 
   //publish the message
   odom_pub.publish(odom);
 }
-void visual_slam::Trajectory_EstimationNodeHandler::publishPose(visual_slam::TFMatrix robot_pose)
+void visual_slam::Trajectory_EstimationNodeHandler::publishPose(visual_slam::Robot_Pose robot_pose)
 {
-  double x = static_cast<double>(robot_pose(0,3));
-  double y = static_cast<double>(robot_pose(1,3));
-  double z = static_cast<double>(robot_pose(2,3));
-
-  double qw = sqrt(1.0 + robot_pose(0,0) + robot_pose(1,1) + robot_pose(2,2)) / 2.0;
-  double w4 = 4.0 * qw ;
-  double qx = (robot_pose(2,1) - robot_pose(1,2)) / w4;
-  double qy = (robot_pose(0,2) - robot_pose(2,0)) / w4;
-  double qz = (robot_pose(1,0) - robot_pose(0,1)) / w4;
+  visual_slam::RobotPose6D PoseVec = robot_pose.getRobotPose();
 
   geometry_msgs::PoseStamped msg;
   msg.header.frame_id = "base_link";
-  msg.pose.position.x = x;
-  msg.pose.position.y = y;
-  msg.pose.position.z = z;
-  msg.pose.orientation.w = w4;
-  msg.pose.orientation.x = qx;
-  msg.pose.orientation.y = qy;
-  msg.pose.orientation.z = qz;
+  geometry_msgs::Quaternion odom_quat = tf::createQuaternionMsgFromRollPitchYaw(PoseVec(3), PoseVec(4), PoseVec(5));
+
+  msg.pose.position.x = PoseVec(0);
+  msg.pose.position.y = PoseVec(1);
+  msg.pose.position.z = PoseVec(3);
+  msg.pose.orientation= odom_quat;
 
   pose_pub.publish(msg);
 
 }
-void visual_slam::Trajectory_EstimationNodeHandler::publishFullPath(visual_slam::TFMatrix robot_pose)
+void visual_slam::Trajectory_EstimationNodeHandler::publishFullPath(visual_slam::Robot_Pose robot_pose)
 {
-  double x = static_cast<double>(robot_pose(0,3));
-  double y = static_cast<double>(robot_pose(1,3));
-  double z = static_cast<double>(robot_pose(2,3));
-
-  double qw = sqrt(1.0 + robot_pose(0,0) + robot_pose(1,1) + robot_pose(2,2)) / 2.0;
-  double w4 = 4.0 * qw ;
-  double qx = (robot_pose(2,1) - robot_pose(1,2)) / w4;
-  double qy = (robot_pose(0,2) - robot_pose(2,0)) / w4;
-  double qz = (robot_pose(1,0) - robot_pose(0,1)) / w4;
+  visual_slam::RobotPose6D PoseVec = robot_pose.getRobotPose();
+  geometry_msgs::Quaternion odom_quat = tf::createQuaternionMsgFromRollPitchYaw(PoseVec(3), PoseVec(4), PoseVec(5));
 
   geometry_msgs::PoseStamped msg;
-  msg.header.frame_id = "base_link";
-  msg.pose.position.x = x;
-  msg.pose.position.y = y;
-  msg.pose.position.z = z;
-  msg.pose.orientation.w = w4;
-  msg.pose.orientation.x = qx;
-  msg.pose.orientation.y = qy;
-  msg.pose.orientation.z = qz;
+  msg.pose.position.x = PoseVec(0);
+  msg.pose.position.y = PoseVec(1);
+  msg.pose.position.z = PoseVec(3);
+  msg.pose.orientation= odom_quat;
   fullPath.push_back(msg);
 
   if(!fullPath.empty()){
@@ -500,7 +473,7 @@ void visual_slam::Trajectory_EstimationNodeHandler::map(visual_slam::TFMatrix ro
 
 int main(int argc, char** argv)
 {
-  ros::init(argc, argv, "Transformation_Estimation_Node");
+  ros::init(argc, argv, "Trajectory_Estimation");
   ROS_INFO("Start reading dataset ---");
   std::vector<visual_slam::FrameData> Frames = visual_slam::readDataset();
   ROS_INFO("Reading dataset finished with size %i" , (int)Frames.size());

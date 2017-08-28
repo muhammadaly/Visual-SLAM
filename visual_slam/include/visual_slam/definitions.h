@@ -9,6 +9,9 @@
 
 namespace visual_slam {
 
+#define PI 3.14159265
+
+
   static const int ORBFeatureVectorLength = 32;
   static const int SIFTFeatureVectorLength = 128;
 

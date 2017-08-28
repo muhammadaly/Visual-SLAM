@@ -2,52 +2,48 @@
 
 visual_slam::G2OMapOptimizer::G2OMapOptimizer()
 {
-
   graph = std::unique_ptr<g2o::SparseOptimizer>(new g2o::SparseOptimizer);
+  graph->setVerbose(false);
 
-  SlamLinearSolver* linearSolver = new SlamLinearSolver();
+  visual_slam::SlamLinearCholmodSolver* linearSolver = new visual_slam::SlamLinearCholmodSolver();
   linearSolver->setBlockOrdering(false);
-  SlamBlockSolver* blockSolver = new SlamBlockSolver(linearSolver);
-  g2o::OptimizationAlgorithmGaussNewton* solver = new g2o::OptimizationAlgorithmGaussNewton(blockSolver);
+  visual_slam::SlamBlockSolver* solver = new SlamBlockSolver(linearSolver);
 
-  graph->setAlgorithm(solver);
+  g2o::OptimizationAlgorithmLevenberg * algo = new g2o::OptimizationAlgorithmLevenberg(solver);
+  graph->setAlgorithm(algo);
 
-  // add the parameter representing the sensor offset
-//  SE3 sensorOffsetTransf(0, 0, 0);
-//  ParameterSE3Offset* sensorOffset = new ParameterSE3Offset;
-//  sensorOffset->setOffset(sensorOffsetTransf);
-//  sensorOffset->setId(0);
-//  graph.addParameter(sensorOffset);
-  Eigen::Isometry3d pose = Eigen::Isometry3d::Identity();
-  VertexPose * v = new VertexPose();
-  int poseNum2Id = uniqueId.getUniqueId();
-  v->setEstimate(pose);
-  v->setId(poseNum2Id);
-  v->setFixed(true);
-  graph->addVertex(v);
+  g2o::ParameterCamera* cameraParams = new g2o::ParameterCamera();
+  cameraParams->setKcam(fx, fy, cx, cy);
+  g2o::SE3Quat offset; // identity
+  cameraParams->setOffset(offset);
+  cameraParams->setId(0);
+  graph->addParameter(cameraParams);
 }
 
 void visual_slam::G2OMapOptimizer::addPoseToGraph(Eigen::Isometry3d& pose, int& poseNum2Id)
 {
-  VertexPose * v = new VertexPose();
+  g2o::VertexSE3 * v = new g2o::VertexSE3;
   poseNum2Id = uniqueId.getUniqueId();
   v->setEstimate(pose);
   v->setId(poseNum2Id);
+  v->setFixed(false);
   graph->addVertex(v);
 }
 
 void visual_slam::G2OMapOptimizer::addEdge(const Eigen::Isometry3d & a_T_b, const int id_a, const int id_b)
 {
-  EdgePosePose * e = new EdgePosePose;
-  g2o::OptimizableGraph::Vertex * pose_a_vertex = dynamic_cast<g2o::OptimizableGraph::Vertex*>(graph->vertices()[id_a]);
-  g2o::OptimizableGraph::Vertex * pose_b_vertex = dynamic_cast<g2o::OptimizableGraph::Vertex*>(graph->vertices()[id_b]);
+  g2o::EdgeSE3 * e = new g2o::EdgeSE3;
+  g2o::VertexSE3 * pose_a_vertex = dynamic_cast<g2o::VertexSE3*>(graph->vertices()[id_a]);
+  g2o::VertexSE3 * pose_b_vertex = dynamic_cast<g2o::VertexSE3*>(graph->vertices()[id_b]);
 
   e->vertices()[0] = pose_a_vertex;
   e->vertices()[1] = pose_b_vertex;
+  e->setMeasurement(a_T_b);
+
   Eigen::Matrix<double, 6, 6> Lambda;
   Lambda.setIdentity();
-  e->setMeasurement(a_T_b);
   e->setInformation(Lambda);
+
   graph->addEdge(e);
 }
 

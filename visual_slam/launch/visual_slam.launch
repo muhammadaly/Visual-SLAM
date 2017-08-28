@@ -1,3 +1,4 @@
 <launch>
-    <node pkg="visual_slam" type="Trajectory_Estimation" name="Trajectory_Estimation" output="screen"/>
+<!--    <node pkg="visual_slam" type="Trajectory_Estimation" name="Trajectory_Estimation" output="screen"/>-->
+<node pkg="visual_slam" type="transformation_tests" name="transformation_tests" output="screen"/>
 </launch>

@@ -6,17 +6,20 @@
 
 #include "g2o/core/sparse_optimizer.h"
 #include "g2o/core/block_solver.h"
-#include "g2o/core/factory.h"
-#include "g2o/core/optimization_algorithm_factory.h"
-#include "g2o/core/optimization_algorithm_gauss_newton.h"
-#include "g2o/solvers/csparse/linear_solver_csparse.h"
+#include "g2o/core/optimization_algorithm_levenberg.h"
 
-#include "custom_types/vertex_pose.h"
+#include "g2o/solvers/csparse/linear_solver_csparse.h"
+#include "g2o/solvers/cholmod/linear_solver_cholmod.h"
+
+#include "g2o/types/slam3d/se3quat.h"
+#include "g2o/types/slam3d/edge_se3.h"
+#include "g2o/types/slam3d/parameter_camera.h"
 #include "custom_types/edge_pose_pose.h"
 
 namespace visual_slam {
-typedef g2o::BlockSolver< g2o::BlockSolverTraits<-1, -1> >  SlamBlockSolver;
-typedef g2o::LinearSolverCSparse<SlamBlockSolver::PoseMatrixType> SlamLinearSolver;
+typedef g2o::BlockSolver< g2o::BlockSolverTraits<6, 3> >  SlamBlockSolver;
+typedef g2o::LinearSolverCSparse<SlamBlockSolver::PoseMatrixType> SlamLinearCSparseSolver;
+typedef g2o::LinearSolverCholmod<SlamBlockSolver::PoseMatrixType> SlamLinearCholmodSolver;
 
 class G2OMapOptimizer
 {
