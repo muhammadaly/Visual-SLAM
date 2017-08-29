@@ -1,10 +1,18 @@
 #ifndef OPENCVUTILITIES_H
 #define OPENCVUTILITIES_H
 
+#include <opencv2/core/core.hpp>
+#include <opencv2/features2d/features2d.hpp>
+#include "ros/ros.h"
+
 namespace visual_slam {
 
 class OpenCVUtilities
 {
+private:
+  static OpenCVUtilities * s_instance;
+  OpenCVUtilities();
+
 public:
   static OpenCVUtilities *instance()
   {
@@ -12,13 +20,7 @@ public:
       s_instance = new OpenCVUtilities;
     return s_instance;
   }
-  void depthToCV8UC1(cv::Mat& float_img, cv::Mat& mono8_img);
-
-
-private:
-  static OpenCVUtilities * s_instance;
-  OpenCVUtilities();
-
+  void depthToCV8UC1(cv::Mat&, cv::Mat&);
 };
 
 }

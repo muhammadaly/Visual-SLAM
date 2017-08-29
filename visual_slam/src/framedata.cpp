@@ -13,7 +13,7 @@ visual_slam::FrameData::FrameData(cv::Mat pframeMatrix, std::string pfileName)
     _timestamp = pfileName.substr(start , found-start);
 }
 
-visual_slam::FrameData::FrameData(cv::Mat pframeMatrix, std::string pfileName, cv::Mat pdepthMatrix)
+visual_slam::FrameData::FrameData(cv::Mat pframeMatrix,cv::Mat pdepthMatrix, std::string pfileName)
 {
     _fileName = pfileName;
     _frameMatrix = pframeMatrix;
@@ -21,6 +21,19 @@ visual_slam::FrameData::FrameData(cv::Mat pframeMatrix, std::string pfileName, c
     int start = pfileName.find_last_of("/")+1;
     _timestamp = pfileName.substr(start , found-start);
     _depthMatrix = pdepthMatrix;
+}
+
+visual_slam::FrameData::FrameData(cv::Mat pframeMatrix, cv::Mat pdepthMatrix, PointCloudT::Ptr pPointCloud)
+{
+  _frameMatrix = pframeMatrix;
+  _depthMatrix = pdepthMatrix;
+  _pointCloud = pPointCloud;
+}
+
+visual_slam::FrameData::FrameData(cv::Mat pframeMatrix, cv::Mat pdepthMatrix, sensor_msgs::CameraInfoConstPtr, std_msgs::Header)
+{
+  _frameMatrix = pframeMatrix;
+  _depthMatrix = pdepthMatrix;
 }
 
 cv::Mat visual_slam::FrameData::getFrameMatrix() const
@@ -71,4 +84,19 @@ visual_slam::TFMatrix visual_slam::FrameData::getRobotPose() const
 void visual_slam::FrameData::setRobotPose(visual_slam::TFMatrix pRobotPose)
 {
   RobotPose = pRobotPose;
+}
+
+void visual_slam::FrameData::setBase2PointsTransform(tf::StampedTransform pTransform)
+{
+
+}
+
+void visual_slam::FrameData::setGroundTruthTransform(tf::StampedTransform)
+{
+
+}
+
+void visual_slam::FrameData::setOdomTransform(tf::StampedTransform)
+{
+
 }

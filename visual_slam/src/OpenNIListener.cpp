@@ -1,10 +1,21 @@
 #include "OpenNIListener.h"
 
 #include "Utilities/OpenCVUtilities.h"
+#include "Utilities/ROSUtilities.h"
 
-void visual_slam::OpenNIListener::setupSubscribers(){
-  int queue;
-  _node.getParam("/queue_size", queue);
+#include "pcl/conversions.h"
+#include "pcl_conversions/pcl_conversions.h"
+#include <cv_bridge/cv_bridge.h>
+
+
+typedef message_filters::Subscriber<sensor_msgs::Image> image_sub_type;
+typedef message_filters::Subscriber<sensor_msgs::CameraInfo> cinfo_sub_type;
+typedef message_filters::Subscriber<sensor_msgs::PointCloud2> pc_sub_type;
+typedef message_filters::Subscriber<nav_msgs::Odometry> odom_sub_type;
+
+void visual_slam::OpenNIListener::setupsubscribers(){
+  int q;
+  _node.getParam("/queue_size", q);
   std::string bagfile_name;
   _node.getParam("/bagfile_name", bagfile_name);
   if(bagfile_name.empty()){
@@ -22,7 +33,7 @@ void visual_slam::OpenNIListener::setupSubscribers(){
       depth_sub_ = new image_sub_type (_node, depth_tpc, q);
       cloud_sub_ = new pc_sub_type (_node, cloud_tpc, q);
       kinect_sync_ = new message_filters::Synchronizer<KinectSyncPolicy>(KinectSyncPolicy(q),  *visua_sub_, *depth_sub_, *cloud_sub_),
-          kinect_sync_->registerCallback(boost::bind(&OpenNIListener::kinectCallback, this, _1, _2, _3));
+          kinect_sync_->registerCallback(boost::bind(&visual_slam::OpenNIListener::kinectCallback, this, _1, _2, _3));
       ROS_INFO_STREAM_NAMED("OpenNIListener", "Listening to " << visua_tpc << ", " << depth_tpc << " and " << cloud_tpc);
     }
     //No cloud, but visual image and depth
@@ -32,7 +43,7 @@ void visual_slam::OpenNIListener::setupSubscribers(){
       depth_sub_ = new image_sub_type(_node, depth_tpc, q);
       cinfo_sub_ = new cinfo_sub_type(_node, cinfo_tpc, q);
       no_cloud_sync_ = new message_filters::Synchronizer<NoCloudSyncPolicy>(NoCloudSyncPolicy(q),  *visua_sub_, *depth_sub_, *cinfo_sub_);
-      no_cloud_sync_->registerCallback(boost::bind(&OpenNIListener::noCloudCallback, this, _1, _2, _3));
+      no_cloud_sync_->registerCallback(boost::bind(&visual_slam::OpenNIListener::noCloudCallback, this, _1, _2, _3));
       ROS_INFO_STREAM_NAMED("OpenNIListener", "Listening to " << visua_tpc << " and " << depth_tpc);
     }
   }
@@ -41,7 +52,7 @@ void visual_slam::OpenNIListener::setupSubscribers(){
   }
 }
 
-void OpenNIListener::kinectCallback (const sensor_msgs::ImageConstPtr& visual_img_msg,
+void visual_slam::OpenNIListener::kinectCallback (const sensor_msgs::ImageConstPtr& visual_img_msg,
                                      const sensor_msgs::ImageConstPtr& depth_img_msg,
                                      const sensor_msgs::PointCloud2ConstPtr& point_cloud)
 {
@@ -55,9 +66,9 @@ void OpenNIListener::kinectCallback (const sensor_msgs::ImageConstPtr& visual_im
     return;
   }
   image_encoding_ = visual_img_msg->encoding;
-  OpenCVUtilities::instance()->depthToCV8UC1(depth_float_img, depth_mono8_img_);
+  visual_slam::OpenCVUtilities::instance()->depthToCV8UC1(depth_float_img, depth_mono8_img_);
 
-  if(ROSUtilities::instance()->asyncFrameDrop(depth_img_msg->header.stamp, visual_img_msg->header.stamp))
+  if(visual_slam::ROSUtilities::instance()->asyncFrameDrop(depth_img_msg->header.stamp, visual_img_msg->header.stamp))
     return;
 
   PointCloudT::Ptr pc_col(new PointCloudT());//will belong to node
@@ -65,17 +76,17 @@ void OpenNIListener::kinectCallback (const sensor_msgs::ImageConstPtr& visual_im
   cameraCallback(visual_img, pc_col, depth_mono8_img_);
 }
 
-void OpenNIListener::cameraCallback(cv::Mat visual_img,
+void visual_slam::OpenNIListener::cameraCallback(cv::Mat visual_img,
                                     PointCloudT::Ptr point_cloud,
                                     cv::Mat depth_mono8_img)
 {
   FrameData* frame = new FrameData(visual_img, depth_mono8_img, point_cloud);
 
   retrieveTransformations(pcl_conversions::fromPCL(point_cloud->header), frame);
-  processFrame(visual_img, frame);
+  callProcessing(visual_img, frame);
 }
 
-void OpenNIListener::retrieveTransformations(std_msgs::Header depth_header, FrameData* frame)
+void visual_slam::OpenNIListener::retrieveTransformations(std_msgs::Header depth_header, FrameData* frame)
 {
   std::string base_frame, odom_frame, gt_frame;
   _node.getParam("base_frame_name", base_frame);
@@ -118,7 +129,7 @@ void OpenNIListener::retrieveTransformations(std_msgs::Header depth_header, Fram
       ROS_WARN_THROTTLE(5, "%s - Using Identity for Ground Truth (This message is throttled to 1 per 5 seconds)",ex.what());
       ground_truth_transform = tf::StampedTransform(tf::Transform::getIdentity(), depth_time, "missing_ground_truth", "/openni_camera");
     }
-    printTransform("Ground Truth", ground_truth_transform);
+    //printTransform("Ground Truth", ground_truth_transform);
     frame->setGroundTruthTransform(ground_truth_transform);
   }
   if(!odom_frame.empty()){
@@ -134,29 +145,76 @@ void OpenNIListener::retrieveTransformations(std_msgs::Header depth_header, Fram
       current_odom_transform = tf::StampedTransform(tf::Transform::getIdentity(), depth_time, "missing_odometry", depth_frame_id);
       current_odom_transform.stamp_ = depth_time;
     }
-    printTransform("Odometry", current_odom_transform);
+    //printTransform("Odometry", current_odom_transform);
     frame->setOdomTransform(current_odom_transform);
   }
 }
 
-
-void OpenNIListener::processFrame(FrameData* new_node)
+void visual_slam::OpenNIListener::callProcessing(cv::Mat visual_img, FrameData* node_ptr)
 {
-  bool has_been_added = graph_mgr_->addNode(new_node);
+  processFrame(node_ptr);
+}
+
+void visual_slam::OpenNIListener::processFrame(FrameData* new_node)
+{
+  bool has_been_added = false;//graph_mgr_->addNode(new_node);
   ++num_processed_;
   std::string odom_frame_name;
   _node.getParam("odom_frame_name", odom_frame_name);
   if(has_been_added && !odom_frame_name.empty()){
     ROS_INFO_NAMED("OpenNIListener", "Verifying Odometry Information");
     ros::Time latest_odom_time;
-    std::string odom_frame  = ps->get<std::string>("odom_frame_name");
-    std::string base_frame  = ps->get<std::string>("base_frame_name");
+    std::string odom_frame, base_frame;
+    _node.getParam("odom_frame_name", odom_frame);
+    _node.getParam("base_frame_name", base_frame);
     std::string error_msg;
     int ev = tflistener_->getLatestCommonTime(odom_frame, base_frame, latest_odom_time, &error_msg);
     if(ev == tf::NO_ERROR){
-      graph_mgr_->addOdometry(latest_odom_time, tflistener_);
+      //graph_mgr_->addOdometry(latest_odom_time, tflistener_);
     } else {
       ROS_WARN_STREAM("Couldn't get time of latest tf transform between " << odom_frame << " and " << base_frame << ": " << error_msg);
     }
   }
+}
+
+
+void visual_slam::OpenNIListener::noCloudCallback (const sensor_msgs::ImageConstPtr& visual_img_msg,
+                                      const sensor_msgs::ImageConstPtr& depth_img_msg,
+                                      const sensor_msgs::CameraInfoConstPtr& cam_info_msg)
+{
+  cv::Mat depth_float_img = cv_bridge::toCvCopy(depth_img_msg)->image;
+  cv::Mat visual_img;
+  if(image_encoding_ == "bayer_grbg8"){
+    cv_bridge::toCvShare(visual_img_msg);
+    cv::cvtColor(cv_bridge::toCvCopy(visual_img_msg)->image, visual_img, CV_BayerGR2RGB, 3);
+  } else{
+    ROS_INFO_STREAM("Encoding: " << visual_img_msg->encoding);
+    visual_img =  cv_bridge::toCvCopy(visual_img_msg)->image;
+  }
+
+  if(visual_img.rows != depth_float_img.rows ||
+     visual_img.cols != depth_float_img.cols){
+    ROS_WARN("depth and visual image differ in size! Rescaling Depth Data");
+    cv::resize(depth_float_img, depth_float_img, visual_img.size(), 0,0,cv::INTER_NEAREST);
+  }
+  image_encoding_ = visual_img_msg->encoding;
+
+  visual_slam::OpenCVUtilities::instance()->depthToCV8UC1(depth_float_img, depth_mono8_img_);
+
+  if(visual_slam::ROSUtilities::instance()->asyncFrameDrop(depth_img_msg->header.stamp, visual_img_msg->header.stamp))
+    return;
+
+  noCloudCameraCallback(visual_img, depth_float_img, depth_mono8_img_, visual_img_msg->header, cam_info_msg);
+}
+
+void visual_slam::OpenNIListener::noCloudCameraCallback(cv::Mat visual_img,
+                                           cv::Mat depth,
+                                           cv::Mat depth_mono8_img,
+                                           std_msgs::Header depth_header,
+                                           const sensor_msgs::CameraInfoConstPtr& cam_info)
+{
+  FrameData* node_ptr = new FrameData(visual_img, depth, cam_info, depth_header);
+
+  retrieveTransformations(depth_header, node_ptr);
+  callProcessing(visual_img, node_ptr);
 }

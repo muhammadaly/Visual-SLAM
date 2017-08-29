@@ -9,7 +9,8 @@ set(${PROJECT_NAME}_CATKIN_DEPS
     pcl_ros
     std_msgs
     eigen_conversions
-    tf)
+    tf
+    cv_bridge)
 set(CMAKE_BUILD_TYPE Debug)
 
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x -Wall")
@@ -54,7 +55,8 @@ catkin_package(CATKIN_DEPENDS roscpp
     eigen_conversions
     pcl_ros
     std_msgs
-    tf)
+    tf
+    cv_bridge)
 
 link_directories(${PCL_LIBRARY_DIRS} /usr/local/lib)
 add_definitions(${PCL_DEFINITIONS})
@@ -73,6 +75,10 @@ set(SOURCES src/framedata.cpp
     src/Feature_Matching/FeatureMatcher.cpp
     src/Utilities/PCLUtilities.cpp
     src/Utilities/LogFile.cpp
+    src/Utilities/TUMUtilities.cpp
+    src/Utilities/EigenUtilites.cpp
+    src/Utilities/OpenCVUtilities.cpp
+    src/Utilities/ROSUtilities.cpp
     src/custom_types/vertex_pose.cpp
     src/custom_types/edge_pose_pose.cpp
     src/Utilities/TUMUtilities.cpp
@@ -96,6 +102,8 @@ set(HEADERS include/visual_slam/framedata.h
     include/visual_slam/Utilities/LogFile.h
     include/visual_slam/Utilities/TUMUtilities.h
     include/visual_slam/Utilities/EigenUtilites.h
+    include/visual_slam/Utilities/OpenCVUtilities.h
+    include/visual_slam/Utilities/ROSUtilities.h
     include/visual_slam/custom_types/vertex_pose.h
     include/visual_slam/custom_types/edge_pose_pose.h
     include/visual_slam/Map_Optimization/g2omapoptimizer.h)

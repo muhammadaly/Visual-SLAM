@@ -1,6 +1,8 @@
 #ifndef ROSUTILITIES_H
 #define ROSUTILITIES_H
 
+#include "ros/ros.h"
+
 namespace visual_slam {
 
 class ROSUtilities
@@ -18,6 +20,7 @@ private:
   static ROSUtilities * s_instance;
   ROSUtilities();
 };
+
 
 }
 

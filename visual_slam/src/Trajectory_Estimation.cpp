@@ -122,7 +122,7 @@ std::vector<FrameData> readDataset()
       if(image.data && Dimage.data)
       {
         //        Dimage.convertTo(Dimage , CV_16U);
-        frames.push_back(FrameData(image , (depthImages+depthFiles[i]).c_str() ,Dimage));
+        frames.push_back(FrameData(image , Dimage, (depthImages+depthFiles[i]).c_str()));
       }
 
     }

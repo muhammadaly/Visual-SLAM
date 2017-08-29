@@ -1,9 +1,6 @@
-#include "OpenCVUtilities.h"
+#include "Utilities/OpenCVUtilities.h"
 
-OpenCVUtilities::OpenCVUtilities()
-{
-
-}
+visual_slam::OpenCVUtilities* visual_slam::OpenCVUtilities::s_instance = NULL;
 
 void visual_slam::OpenCVUtilities::depthToCV8UC1(cv::Mat& depth_img, cv::Mat& mono8_img){
   //Process images
@@ -18,7 +15,12 @@ void visual_slam::OpenCVUtilities::depthToCV8UC1(cv::Mat& depth_img, cv::Mat& mo
     depth_img = float_img;
   }
   else {
-    printMatrixInfo(depth_img, "Depth Image");
-    ROS_ERROR_STREAM("Don't know how to handle depth image of type "<< openCVCode2String(depth_img.type()));
+    //printMatrixInfo(depth_img, "Depth Image");
+    //ROS_ERROR_STREAM("Don't know how to handle depth image of type "<< openCVCode2String(depth_img.type()));
   }
+}
+
+visual_slam::OpenCVUtilities::OpenCVUtilities()
+{
+
 }
