@@ -33,7 +33,6 @@ class OpenNIListener
 public:
   OpenNIListener();
 private:
-
   ros::NodeHandle _node;
 
   tf::TransformListener* tflistener_;
@@ -48,8 +47,9 @@ private:
   message_filters::Subscriber<sensor_msgs::PointCloud2> *cloud_sub_;
   message_filters::Subscriber<nav_msgs::Odometry> *odom_sub_;
 
-  cv::Mat depth_mono8_img_;
+  std::unique_ptr<FeatureExtractorAndDescriptor> featureExtractorAndDescriptor;
 
+  cv::Mat depth_mono8_img_;
   std::string image_encoding_;
   int num_processed_;
 
@@ -60,6 +60,8 @@ private:
   void cameraCallback(cv::Mat visual_img,
                                       PointCloudT::Ptr point_cloud,
                                       cv::Mat depth_mono8_img);
+  void odomCallback(const nav_msgs::OdometryConstPtr& odom_msg);
+
   void retrieveTransformations(std_msgs::Header depth_header, FrameData* frame);
   void processFrame(FrameData* new_node);
   void noCloudCameraCallback(cv::Mat visual_img,

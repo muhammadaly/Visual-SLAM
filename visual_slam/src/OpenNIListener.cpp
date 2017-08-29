@@ -13,6 +13,11 @@ typedef message_filters::Subscriber<sensor_msgs::CameraInfo> cinfo_sub_type;
 typedef message_filters::Subscriber<sensor_msgs::PointCloud2> pc_sub_type;
 typedef message_filters::Subscriber<nav_msgs::Odometry> odom_sub_type;
 
+visual_slam::OpenNIListener::OpenNIListener()
+{
+  featureExtractorAndDescriptor = std::unique_ptr<CVORBFeatureExtractorAndDescriptor>(new CVORBFeatureExtractorAndDescriptor);
+}
+
 void visual_slam::OpenNIListener::setupsubscribers(){
   int q;
   _node.getParam("/queue_size", q);
@@ -33,8 +38,7 @@ void visual_slam::OpenNIListener::setupsubscribers(){
       depth_sub_ = new image_sub_type (_node, depth_tpc, q);
       cloud_sub_ = new pc_sub_type (_node, cloud_tpc, q);
       kinect_sync_ = new message_filters::Synchronizer<KinectSyncPolicy>(KinectSyncPolicy(q),  *visua_sub_, *depth_sub_, *cloud_sub_),
-          kinect_sync_->registerCallback(boost::bind(&visual_slam::OpenNIListener::kinectCallback, this, _1, _2, _3));
-      ROS_INFO_STREAM_NAMED("OpenNIListener", "Listening to " << visua_tpc << ", " << depth_tpc << " and " << cloud_tpc);
+      kinect_sync_->registerCallback(boost::bind(&visual_slam::OpenNIListener::kinectCallback, this, _1, _2, _3));
     }
     //No cloud, but visual image and depth
     else if(!visua_tpc.empty() && !depth_tpc.empty() && !cinfo_tpc.empty() && cloud_tpc.empty())
@@ -44,7 +48,14 @@ void visual_slam::OpenNIListener::setupsubscribers(){
       cinfo_sub_ = new cinfo_sub_type(_node, cinfo_tpc, q);
       no_cloud_sync_ = new message_filters::Synchronizer<NoCloudSyncPolicy>(NoCloudSyncPolicy(q),  *visua_sub_, *depth_sub_, *cinfo_sub_);
       no_cloud_sync_->registerCallback(boost::bind(&visual_slam::OpenNIListener::noCloudCallback, this, _1, _2, _3));
-      ROS_INFO_STREAM_NAMED("OpenNIListener", "Listening to " << visua_tpc << " and " << depth_tpc);
+    }
+    bool use_robot_odom;
+    _node.getParam("use_robot_odom", use_robot_odom);
+    if(use_robot_odom){
+      std::string odometry_tpc;
+      _node.getParam("odometry_tpc", odometry_tpc);
+      odom_sub_= new odom_sub_type(_node,odometry_tpc , 3);
+      odom_sub_->registerCallback(boost::bind(&OpenNIListener::odomCallback,this,_1));
     }
   }
   else {
@@ -80,103 +91,11 @@ void visual_slam::OpenNIListener::cameraCallback(cv::Mat visual_img,
                                     PointCloudT::Ptr point_cloud,
                                     cv::Mat depth_mono8_img)
 {
-  FrameData* frame = new FrameData(visual_img, depth_mono8_img, point_cloud);
+  FrameData* new_frame = new FrameData(visual_img, depth_mono8_img, point_cloud);
 
-  retrieveTransformations(pcl_conversions::fromPCL(point_cloud->header), frame);
-  callProcessing(visual_img, frame);
+  retrieveTransformations(pcl_conversions::fromPCL(point_cloud->header), new_frame);
+  callProcessing(visual_img, new_frame);
 }
-
-void visual_slam::OpenNIListener::retrieveTransformations(std_msgs::Header depth_header, FrameData* frame)
-{
-  std::string base_frame, odom_frame, gt_frame;
-  _node.getParam("base_frame_name", base_frame);
-  _node.getParam("odom_frame_name", odom_frame);
-  _node.getParam("ground_truth_frame_name",gt_frame);
-
-  std::string depth_frame_id = depth_header.frame_id;
-  ros::Time depth_time = depth_header.stamp;
-  tf::StampedTransform base2points;
-
-  try{
-    tflistener_->waitForTransform(base_frame, depth_frame_id, depth_time, ros::Duration(0.005));
-    tflistener_->lookupTransform(base_frame, depth_frame_id, depth_time, base2points);
-    base2points.stamp_ = depth_time;
-  }
-  catch (tf::TransformException ex){
-    base2points.setRotation(tf::createQuaternionFromRPY(-1.57,0,-1.57));
-    base2points.setOrigin(tf::Point(0,-0.04,0));
-    base2points.stamp_ = depth_time;
-    base2points.frame_id_ = base_frame;
-    base2points.child_frame_id_ = depth_frame_id;
-  }
-  frame->setBase2PointsTransform(base2points);
-
-  if(!gt_frame.empty()){
-    //Retrieve the ground truth data. For the first frame it will be
-    //set as origin. the rest will be used to compare
-    tf::StampedTransform ground_truth_transform;
-    try{
-      tflistener_->waitForTransform(gt_frame, "/openni_camera", depth_time, ros::Duration(0.005));
-      tflistener_->lookupTransform(gt_frame, "/openni_camera", depth_time, ground_truth_transform);
-      ground_truth_transform.stamp_ = depth_time;
-      tf::StampedTransform b2p;
-      //HACK to comply with Jürgen Sturm's Ground truth, though I can't manage here to get the full transform from tf
-      b2p.setRotation(tf::createQuaternionFromRPY(-1.57,0,-1.57));
-      b2p.setOrigin(tf::Point(0,-0.04,0));
-      ground_truth_transform *= b2p;
-    }
-    catch (tf::TransformException ex){
-      ROS_WARN_THROTTLE(5, "%s - Using Identity for Ground Truth (This message is throttled to 1 per 5 seconds)",ex.what());
-      ground_truth_transform = tf::StampedTransform(tf::Transform::getIdentity(), depth_time, "missing_ground_truth", "/openni_camera");
-    }
-    //printTransform("Ground Truth", ground_truth_transform);
-    frame->setGroundTruthTransform(ground_truth_transform);
-  }
-  if(!odom_frame.empty()){
-    //Retrieve the ground truth data. For the first frame it will be
-    //set as origin. the rest will be used to compare
-    tf::StampedTransform current_odom_transform;
-    try{
-      tflistener_->waitForTransform(depth_frame_id, odom_frame, depth_time, ros::Duration(0.005));
-      tflistener_->lookupTransform( depth_frame_id, odom_frame, depth_time, current_odom_transform);
-    }
-    catch (tf::TransformException ex){
-      ROS_WARN_THROTTLE(5, "%s - No odometry available (This message is throttled to 1 per 5 seconds)",ex.what());
-      current_odom_transform = tf::StampedTransform(tf::Transform::getIdentity(), depth_time, "missing_odometry", depth_frame_id);
-      current_odom_transform.stamp_ = depth_time;
-    }
-    //printTransform("Odometry", current_odom_transform);
-    frame->setOdomTransform(current_odom_transform);
-  }
-}
-
-void visual_slam::OpenNIListener::callProcessing(cv::Mat visual_img, FrameData* node_ptr)
-{
-  processFrame(node_ptr);
-}
-
-void visual_slam::OpenNIListener::processFrame(FrameData* new_node)
-{
-  bool has_been_added = false;//graph_mgr_->addNode(new_node);
-  ++num_processed_;
-  std::string odom_frame_name;
-  _node.getParam("odom_frame_name", odom_frame_name);
-  if(has_been_added && !odom_frame_name.empty()){
-    ROS_INFO_NAMED("OpenNIListener", "Verifying Odometry Information");
-    ros::Time latest_odom_time;
-    std::string odom_frame, base_frame;
-    _node.getParam("odom_frame_name", odom_frame);
-    _node.getParam("base_frame_name", base_frame);
-    std::string error_msg;
-    int ev = tflistener_->getLatestCommonTime(odom_frame, base_frame, latest_odom_time, &error_msg);
-    if(ev == tf::NO_ERROR){
-      //graph_mgr_->addOdometry(latest_odom_time, tflistener_);
-    } else {
-      ROS_WARN_STREAM("Couldn't get time of latest tf transform between " << odom_frame << " and " << base_frame << ": " << error_msg);
-    }
-  }
-}
-
 
 void visual_slam::OpenNIListener::noCloudCallback (const sensor_msgs::ImageConstPtr& visual_img_msg,
                                       const sensor_msgs::ImageConstPtr& depth_img_msg,
@@ -217,4 +136,106 @@ void visual_slam::OpenNIListener::noCloudCameraCallback(cv::Mat visual_img,
 
   retrieveTransformations(depth_header, node_ptr);
   callProcessing(visual_img, node_ptr);
+}
+
+void visual_slam::OpenNIListener::odomCallback(const nav_msgs::OdometryConstPtr& odom_msg)
+{
+  tf::Transform tfTransf;
+  tf::poseMsgToTF (odom_msg->pose.pose, tfTransf);
+  tf::StampedTransform stTransf(tfTransf, odom_msg->header.stamp, odom_msg->header.frame_id, odom_msg->child_frame_id);
+  //printTransform("Odometry Transformation", stTransf);
+  tflistener_->setTransform(stTransf);
+  //Is done now after creation of Node
+  //graph_mgr_->addOdometry(odom_msg->header.stamp,tflistener_);
+}
+
+void visual_slam::OpenNIListener::retrieveTransformations(std_msgs::Header depth_header, FrameData* new_frame)
+{
+  std::string base_frame, odom_frame, gt_frame;
+  _node.getParam("base_frame_name", base_frame);
+  _node.getParam("odom_frame_name", odom_frame);
+  _node.getParam("ground_truth_frame_name",gt_frame);
+
+  std::string depth_frame_id = depth_header.frame_id;
+  ros::Time depth_time = depth_header.stamp;
+  tf::StampedTransform base2points;
+
+  try{
+    tflistener_->waitForTransform(base_frame, depth_frame_id, depth_time, ros::Duration(0.005));
+    tflistener_->lookupTransform(base_frame, depth_frame_id, depth_time, base2points);
+    base2points.stamp_ = depth_time;
+  }
+  catch (tf::TransformException ex){
+    base2points.setRotation(tf::createQuaternionFromRPY(-1.57,0,-1.57));
+    base2points.setOrigin(tf::Point(0,-0.04,0));
+    base2points.stamp_ = depth_time;
+    base2points.frame_id_ = base_frame;
+    base2points.child_frame_id_ = depth_frame_id;
+  }
+  new_frame->setBase2PointsTransform(base2points);
+
+  if(!gt_frame.empty()){
+    tf::StampedTransform ground_truth_transform;
+    try{
+      tflistener_->waitForTransform(gt_frame, "/openni_camera", depth_time, ros::Duration(0.005));
+      tflistener_->lookupTransform(gt_frame, "/openni_camera", depth_time, ground_truth_transform);
+      ground_truth_transform.stamp_ = depth_time;
+      tf::StampedTransform b2p;
+      b2p.setRotation(tf::createQuaternionFromRPY(-1.57,0,-1.57));
+      b2p.setOrigin(tf::Point(0,-0.04,0));
+      ground_truth_transform *= b2p;
+    }
+    catch (tf::TransformException ex){
+      ROS_WARN_THROTTLE(5, "%s - Using Identity for Ground Truth (This message is throttled to 1 per 5 seconds)",ex.what());
+      ground_truth_transform = tf::StampedTransform(tf::Transform::getIdentity(), depth_time, "missing_ground_truth", "/openni_camera");
+    }
+    //printTransform("Ground Truth", ground_truth_transform);
+    new_frame->setGroundTruthTransform(ground_truth_transform);
+  }
+  if(!odom_frame.empty()){
+    tf::StampedTransform current_odom_transform;
+    try{
+      tflistener_->waitForTransform(depth_frame_id, odom_frame, depth_time, ros::Duration(0.005));
+      tflistener_->lookupTransform( depth_frame_id, odom_frame, depth_time, current_odom_transform);
+    }
+    catch (tf::TransformException ex){
+      ROS_WARN_THROTTLE(5, "%s - No odometry available (This message is throttled to 1 per 5 seconds)",ex.what());
+      current_odom_transform = tf::StampedTransform(tf::Transform::getIdentity(), depth_time, "missing_odometry", depth_frame_id);
+      current_odom_transform.stamp_ = depth_time;
+    }
+    //printTransform("Odometry", current_odom_transform);
+    new_frame->setOdomTransform(current_odom_transform);
+  }
+}
+
+void visual_slam::OpenNIListener::callProcessing(cv::Mat visual_img, FrameData* frame_ptr)
+{
+  processFrame(frame_ptr);
+}
+
+void visual_slam::OpenNIListener::processFrame(FrameData* new_frame)
+{
+  std::vector<cv::KeyPoint> newKeypoints;
+  cv::Mat newDescriptors;
+  featureExtractorAndDescriptor->computeDescriptors(new_frame , newKeypoints , newDescriptors);
+  new_frame->setDescriptors(newDescriptors);
+  new_frame->setKeypoints(newKeypoints);
+
+  bool has_been_added = false;//graph_mgr_->addFrame(new_frame);
+  ++num_processed_;
+  std::string odom_frame_name;
+  _node.getParam("odom_frame_name", odom_frame_name);
+  if(has_been_added && !odom_frame_name.empty()){
+    ros::Time latest_odom_time;
+    std::string odom_frame, base_frame;
+    _node.getParam("odom_frame_name", odom_frame);
+    _node.getParam("base_frame_name", base_frame);
+    std::string error_msg;
+    int ev = tflistener_->getLatestCommonTime(odom_frame, base_frame, latest_odom_time, &error_msg);
+    if(ev == tf::NO_ERROR){
+      //graph_mgr_->addOdometry(latest_odom_time, tflistener_);
+    } else {
+      ROS_WARN_STREAM("Couldn't get time of latest tf transform between " << odom_frame << " and " << base_frame << ": " << error_msg);
+    }
+  }
 }

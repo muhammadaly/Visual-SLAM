@@ -286,8 +286,8 @@ bool visual_slam::Trajectory_EstimationNodeHandler::estimateTransformBetween2Sce
 
   featureExtractorAndDescriptor->computeDescriptors(Frames[previousFrameId] , tPreviousKeypoints , tPreviousDescriptors);
   featureExtractorAndDescriptor->computeDescriptors(Frames[currentFrameId] , tCurrentKeypoints , tCurrentDescriptors);
-  Frames[previousFrameId].setSceneFeatureDescriptors(tPreviousDescriptors);
-  Frames[currentFrameId].setSceneFeatureDescriptors(tCurrentDescriptors);
+  Frames[previousFrameId].setDescriptors(tPreviousDescriptors);
+  Frames[currentFrameId].setDescriptors(tCurrentDescriptors);
   featureMatcher->matching2ImageFeatures(tPreviousDescriptors , tCurrentDescriptors,matches);
   pclUTL.getKeypointsAndDescriptors(matches,tPreviousKeypoints,tCurrentKeypoints,
                                     tPreviousDescriptors,tCurrentDescriptors,Frames[previousFrameId],Frames[currentFrameId],
@@ -440,13 +440,13 @@ void visual_slam::Trajectory_EstimationNodeHandler::addToMap(visual_slam::Pose_6
 int visual_slam::Trajectory_EstimationNodeHandler::searchForSimilerScene(int currentSceneInd)
 {
   ROS_INFO("Start search for similer to %i scene -- " , currentSceneInd);
-  cv::Mat currentSceneFeatureDescriptors = Frames[currentSceneInd].getSceneFeatureDescriptors();
+  cv::Mat currentSceneFeatureDescriptors = Frames[currentSceneInd].getDescriptors();
   double threshold = 0.95;
   for(int i = currentSceneInd -1 ; i >=0 ; i--)
   {
     ROS_INFO("compare %i to %i -- " , currentSceneInd , i);
     std::vector<cv::DMatch> matches;
-    cv::Mat previousSceneFeatureDescriptors = Frames[i].getSceneFeatureDescriptors();
+    cv::Mat previousSceneFeatureDescriptors = Frames[i].getDescriptors();
     featureMatcher->matching2ImageFeatures(previousSceneFeatureDescriptors , currentSceneFeatureDescriptors,matches);
     ROS_INFO("number of matches : %i" , (int)matches.size());
     if((matches.size() / currentSceneFeatureDescriptors.rows) > threshold)

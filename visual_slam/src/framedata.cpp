@@ -58,22 +58,22 @@ cv::Mat visual_slam::FrameData::getDepthMatrix() const
 
 void visual_slam::FrameData::setSceneFeatureDescriptors(cv::Mat pSceneFeatureDescriptors)
 {
-  SceneFeatureDescriptors = pSceneFeatureDescriptors;
+  _sceneFeatureDescriptors = pSceneFeatureDescriptors;
 }
 
 cv::Mat visual_slam::FrameData::getSceneFeatureDescriptors() const
 {
-  return SceneFeatureDescriptors;
+  return _sceneFeatureDescriptors;
 }
 
-int visual_slam::FrameData::getGraphNodeId() const
+unsigned int visual_slam::FrameData::getId() const
 {
-  return GraphNodeId;
+  return _id;
 }
 
-void visual_slam::FrameData::setGraphNodeId(int pGraphNodeId)
+void visual_slam::FrameData::setId(unsigned int pId)
 {
-  GraphNodeId = pGraphNodeId;
+  _id = pId;
 }
 
 visual_slam::TFMatrix visual_slam::FrameData::getRobotPose() const
@@ -84,6 +84,16 @@ visual_slam::TFMatrix visual_slam::FrameData::getRobotPose() const
 void visual_slam::FrameData::setRobotPose(visual_slam::TFMatrix pRobotPose)
 {
   RobotPose = pRobotPose;
+}
+
+std::vector<cv::KeyPoint> FrameData::getKeypoints() const
+{
+  return _keypoints;
+}
+
+void FrameData::setKeypoints(const std::vector<cv::KeyPoint> &keypoints)
+{
+  _keypoints = keypoints;
 }
 
 void visual_slam::FrameData::setBase2PointsTransform(tf::StampedTransform pTransform)
@@ -99,4 +109,24 @@ void visual_slam::FrameData::setGroundTruthTransform(tf::StampedTransform)
 void visual_slam::FrameData::setOdomTransform(tf::StampedTransform)
 {
 
+}
+
+unsigned int FrameData::getSequenceId() const
+{
+  return _sequence_id;
+}
+
+void FrameData::setSequenceId(unsigned int sequenceId)
+{
+  _sequenceId = sequenceId;
+}
+
+unsigned int FrameData::getVertexId() const
+{
+  return _vertexId;
+}
+
+void FrameData::setVertexId(unsigned int vertexId)
+{
+  _vertexId = vertexId;
 }

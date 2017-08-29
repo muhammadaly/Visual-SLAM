@@ -25,17 +25,23 @@ public:
     std::string getTimestamp() const;
     cv::Mat getDepthMatrix() const;
 
-    cv::Mat getSceneFeatureDescriptors() const;
-    void setSceneFeatureDescriptors(cv::Mat pSceneFeatureDescriptors);
+    std::vector<cv::KeyPoint> getKeypoints() const;
+    void setKeypoints(const std::vector<cv::KeyPoint> &keypoints);
+    cv::Mat getDescriptors() const;
+    void setDescriptors(cv::Mat pSceneFeatureDescriptors);
+    unsigned int getId() const;
+    void setId(unsigned int);
+    unsigned int getSequenceId() const;
+    void setSequence_id(unsigned int sequenceId);
+    visual_slam::TFMatrix getRobotPose()  const;
+    void setRobotPose(visual_slam::TFMatrix);
+    unsigned int getVertexId() const;
+    void setVertexId(unsigned int vertexId);
 
-    int getGraphNodeId() const;
-    void setGraphNodeId(int);
     void setBase2PointsTransform(tf::StampedTransform);
     void setGroundTruthTransform(tf::StampedTransform);
     void setOdomTransform(tf::StampedTransform);
 
-    visual_slam::TFMatrix getRobotPose()  const;
-    void setRobotPose(visual_slam::TFMatrix);
 
 private:
     cv::Mat _frameMatrix;
@@ -43,8 +49,11 @@ private:
     std::string _fileName;
     std::string _timestamp;
     PointCloudT::Ptr _pointCloud;
-    cv::Mat SceneFeatureDescriptors;
-    int GraphNodeId;
+    std::vector<cv::KeyPoint> _keypoints;
+    cv::Mat _descriptors;
+    unsigned int _id;
+    unsigned int _sequenceId;
+    unsigned int _vertexId;
     visual_slam::TFMatrix RobotPose;
 };
 }
