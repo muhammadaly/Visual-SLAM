@@ -14,6 +14,8 @@ public:
     FrameData() ;
     FrameData(cv::Mat pframeMatrix, std::string pfileName);
     FrameData(cv::Mat pframeMatrix, std::string pfileName, cv::Mat pdepthMatrix);
+    FrameData(cv::Mat pframeMatrix, std::string pfileName, PointCloudT::Ptr pPointCloud);
+
     cv::Mat getFrameMatrix() const;
     std::string getFileName() const;
     std::string getTimestamp() const;
@@ -34,6 +36,7 @@ private:
     cv::Mat _depthMatrix;
     std::string _fileName;
     std::string _timestamp;
+    PointCloudT::Ptr _pointCloud;
     cv::Mat SceneFeatureDescriptors;
     int GraphNodeId;
     visual_slam::TFMatrix RobotPose;
