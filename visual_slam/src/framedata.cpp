@@ -30,10 +30,12 @@ visual_slam::FrameData::FrameData(cv::Mat pframeMatrix, cv::Mat pdepthMatrix, Po
   _pointCloud = pPointCloud;
 }
 
-visual_slam::FrameData::FrameData(cv::Mat pframeMatrix, cv::Mat pdepthMatrix, sensor_msgs::CameraInfoConstPtr, std_msgs::Header)
+visual_slam::FrameData::FrameData(cv::Mat pframeMatrix, cv::Mat pdepthMatrix, sensor_msgs::CameraInfoConstPtr pCameraInfoMsg,
+                                  std_msgs::Header pDepthHeader, std::string pGTFrameName, std::string pBaseFrameName)
 {
   _frameMatrix = pframeMatrix;
   _depthMatrix = pdepthMatrix;
+  ground_truth_transform_(tf::Transform::getIdentity(), pDepthHeader.stamp,pGTFrameName,pBaseFrameName);
 }
 
 cv::Mat visual_slam::FrameData::getFrameMatrix() const
@@ -129,4 +131,11 @@ unsigned int FrameData::getVertexId() const
 void FrameData::setVertexId(unsigned int vertexId)
 {
   _vertexId = vertexId;
+}
+
+void FrameData::setGroundTruthTransform(tf::StampedTransform gt){
+    ground_truth_transform_ = gt;
+}
+tf::StampedTransform FrameData::getGroundTruthTransform() const {
+    return ground_truth_transform_;
 }

@@ -55,6 +55,7 @@ private:
     unsigned int _sequenceId;
     unsigned int _vertexId;
     visual_slam::TFMatrix RobotPose;
+    tf::StampedTransform ground_truth_transform_;
 };
 }
 #endif // FRAMEDATA_H

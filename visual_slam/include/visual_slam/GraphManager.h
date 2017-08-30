@@ -19,8 +19,14 @@ private:
 
   tf::Transform  init_base_pose_;
 
+  std::vector<int> keyframe_ids_;
+  bool process_node_runs_;
+
   std::map<int, FrameData* > graph_;
   g2o::HyperGraph::VertexSet camera_vertices;
+
+
+  QMutex optimizer_mutex_;
 };
 
 }
