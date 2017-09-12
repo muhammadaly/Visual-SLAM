@@ -20,6 +20,10 @@
 
 #include <opencv2/core/core.hpp>
 #include <opencv2/features2d/features2d.hpp>
+
+#include <visual_slam/Feature_Extraction/FeatureExtractorAndDescriptor.h>
+#include <visual_slam/Feature_Extraction/CVORBFeatureExtractorAndDescriptor.h>
+
 namespace visual_slam {
 typedef message_filters::sync_policies::ApproximateTime<sensor_msgs::Image,
                                                         sensor_msgs::Image,

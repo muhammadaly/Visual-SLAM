@@ -19,6 +19,8 @@ public:
     FrameData(cv::Mat pframeMatrix,cv::Mat pdepthMatrix, std::string pfileName);
     FrameData(cv::Mat pframeMatrix, cv::Mat pdepthMatrix, PointCloudT::Ptr pPointCloud);
     FrameData(cv::Mat pframeMatrix, cv::Mat pdepthMatrix, sensor_msgs::CameraInfoConstPtr, std_msgs::Header);
+    FrameData(cv::Mat pframeMatrix, cv::Mat pdepthMatrix, sensor_msgs::CameraInfoConstPtr pCameraInfoMsg,
+                                  std_msgs::Header pDepthHeader, std::string pGTFrameName, std::string pBaseFrameName);
 
     cv::Mat getFrameMatrix() const;
     std::string getFileName() const;
@@ -29,8 +31,8 @@ public:
     void setKeypoints(const std::vector<cv::KeyPoint> &keypoints);
     cv::Mat getDescriptors() const;
     void setDescriptors(cv::Mat pSceneFeatureDescriptors);
-    unsigned int getId() const;
-    void setId(unsigned int);
+    unsigned int getGraphNodeId() const;
+    void setGraphNodeId(unsigned int);
     unsigned int getSequenceId() const;
     void setSequence_id(unsigned int sequenceId);
     visual_slam::TFMatrix getRobotPose()  const;
@@ -41,6 +43,10 @@ public:
     void setBase2PointsTransform(tf::StampedTransform);
     void setGroundTruthTransform(tf::StampedTransform);
     void setOdomTransform(tf::StampedTransform);
+    void setSceneFeatureDescriptors(cv::Mat pSceneFeatureDescriptors);
+    cv::Mat getSceneFeatureDescriptors() const;
+    void setSequenceId(unsigned int sequenceId);
+    tf::StampedTransform getGroundTruthTransform() const;
 
 
 private:
@@ -56,6 +62,8 @@ private:
     unsigned int _vertexId;
     visual_slam::TFMatrix RobotPose;
     tf::StampedTransform ground_truth_transform_;
+    cv::Mat _sceneFeatureDescriptors;
+    unsigned int _sequence_id;
 };
 }
 #endif // FRAMEDATA_H

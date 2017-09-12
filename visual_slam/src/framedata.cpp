@@ -1,4 +1,4 @@
-#include <framedata.h>
+#include <visual_slam/framedata.h>
 
 visual_slam::FrameData::FrameData()
 {
@@ -35,7 +35,12 @@ visual_slam::FrameData::FrameData(cv::Mat pframeMatrix, cv::Mat pdepthMatrix, se
 {
   _frameMatrix = pframeMatrix;
   _depthMatrix = pdepthMatrix;
-  ground_truth_transform_(tf::Transform::getIdentity(), pDepthHeader.stamp,pGTFrameName,pBaseFrameName);
+
+  ground_truth_transform_ = tf::StampedTransform(tf::Transform::getIdentity(), pDepthHeader.stamp,pGTFrameName,pBaseFrameName);
+}
+visual_slam::FrameData::FrameData(cv::Mat pframeMatrix, cv::Mat pdepthMatrix, sensor_msgs::CameraInfoConstPtr, std_msgs::Header)
+{
+
 }
 
 cv::Mat visual_slam::FrameData::getFrameMatrix() const
@@ -68,12 +73,12 @@ cv::Mat visual_slam::FrameData::getSceneFeatureDescriptors() const
   return _sceneFeatureDescriptors;
 }
 
-unsigned int visual_slam::FrameData::getId() const
+unsigned int visual_slam::FrameData::getGraphNodeId() const
 {
   return _id;
 }
 
-void visual_slam::FrameData::setId(unsigned int pId)
+void visual_slam::FrameData::setGraphNodeId(unsigned int pId)
 {
   _id = pId;
 }
@@ -88,12 +93,12 @@ void visual_slam::FrameData::setRobotPose(visual_slam::TFMatrix pRobotPose)
   RobotPose = pRobotPose;
 }
 
-std::vector<cv::KeyPoint> FrameData::getKeypoints() const
+std::vector<cv::KeyPoint> visual_slam::FrameData::getKeypoints() const
 {
   return _keypoints;
 }
 
-void FrameData::setKeypoints(const std::vector<cv::KeyPoint> &keypoints)
+void visual_slam::FrameData::setKeypoints(const std::vector<cv::KeyPoint> &keypoints)
 {
   _keypoints = keypoints;
 }
@@ -103,39 +108,42 @@ void visual_slam::FrameData::setBase2PointsTransform(tf::StampedTransform pTrans
 
 }
 
-void visual_slam::FrameData::setGroundTruthTransform(tf::StampedTransform)
-{
-
-}
-
 void visual_slam::FrameData::setOdomTransform(tf::StampedTransform)
 {
 
 }
 
-unsigned int FrameData::getSequenceId() const
+unsigned int visual_slam::FrameData::getSequenceId() const
 {
   return _sequence_id;
 }
 
-void FrameData::setSequenceId(unsigned int sequenceId)
+void visual_slam::FrameData::setSequenceId(unsigned int sequenceId)
 {
   _sequenceId = sequenceId;
 }
 
-unsigned int FrameData::getVertexId() const
+unsigned int visual_slam::FrameData::getVertexId() const
 {
   return _vertexId;
 }
 
-void FrameData::setVertexId(unsigned int vertexId)
+void visual_slam::FrameData::setVertexId(unsigned int vertexId)
 {
   _vertexId = vertexId;
 }
 
-void FrameData::setGroundTruthTransform(tf::StampedTransform gt){
+void visual_slam::FrameData::setGroundTruthTransform(tf::StampedTransform gt){
     ground_truth_transform_ = gt;
 }
-tf::StampedTransform FrameData::getGroundTruthTransform() const {
+tf::StampedTransform visual_slam::FrameData::getGroundTruthTransform() const {
     return ground_truth_transform_;
+}
+void visual_slam::FrameData::setDescriptors(cv::Mat pSceneFeatureDescriptors)
+{
+
+}
+cv::Mat visual_slam::FrameData::getDescriptors() const
+{
+  
 }

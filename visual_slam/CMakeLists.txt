@@ -21,8 +21,10 @@ find_package(PCL 1.7 REQUIRED REQUIRED COMPONENTS filters io registration segmen
 set(OpenCV_INCLUDE_DIR "/usr/local/include")
 set(OpenCV_LIBS  "opencv_core;opencv_highgui;opencv_imgproc;opencv_features2d;opencv_imgcodecs;opencv_flann;opencv_xfeatures2d")
 set(VTK_INCLUDE_DIR "/usr/include/vtk-5.8")
+set(SUITESPARSE_INCLUDE_DIR "/usr/include/suitesparse")
 
-include_directories(include/visual_slam
+include_directories(include 
+    include/visual_slam
     ${VTK_INCLUDE_DIR}
     ${OpenCV_INCLUDE_DIR}
     ${PCL_INCLUDE_DIRS}
@@ -34,7 +36,7 @@ include_directories(include/visual_slam
     ${CSPARSE_INCLUDE_DIR}
     ${Cholmod_INCLUDE_DIR}
     ${G2O_INCLUDE_DIR}
-    /usr/include/suitesparse
+    ${SUITESPARSE_INCLUDE_DIR}    
     )
 LIST(APPEND G2O_LIBS
   cxsparse

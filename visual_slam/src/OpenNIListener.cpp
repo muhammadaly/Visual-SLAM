@@ -1,5 +1,5 @@
-#include "OpenNIListener.h"
 
+#include <visual_slam/OpenNIListener.h>
 #include "Utilities/OpenCVUtilities.h"
 #include "Utilities/ROSUtilities.h"
 
@@ -217,7 +217,7 @@ void visual_slam::OpenNIListener::processFrame(FrameData* new_frame)
 {
   std::vector<cv::KeyPoint> newKeypoints;
   cv::Mat newDescriptors;
-  featureExtractorAndDescriptor->computeDescriptors(new_frame , newKeypoints , newDescriptors);
+  featureExtractorAndDescriptor->computeDescriptors((*new_frame) , newKeypoints , newDescriptors);
   new_frame->setDescriptors(newDescriptors);
   new_frame->setKeypoints(newKeypoints);
 
