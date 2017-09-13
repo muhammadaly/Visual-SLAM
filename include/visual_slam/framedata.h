@@ -10,6 +10,8 @@
 
 #include <tf/transform_datatypes.h>
 #include <sensor_msgs/CameraInfo.h>
+#include <MatchingResult.h>
+
 namespace visual_slam {
 class FrameData
 {
@@ -47,8 +49,8 @@ public:
     cv::Mat getSceneFeatureDescriptors() const;
     void setSequenceId(unsigned int sequenceId);
     tf::StampedTransform getGroundTruthTransform() const;
-
-
+    visual_slam::MatchingResult matchNodePair(FrameData*);
+    visual_slam::myHeader getHeaderTime()const;
 private:
     cv::Mat _frameMatrix;
     cv::Mat _depthMatrix;
@@ -64,6 +66,7 @@ private:
     tf::StampedTransform ground_truth_transform_;
     cv::Mat _sceneFeatureDescriptors;
     unsigned int _sequence_id;
+    visual_slam::myHeader _header;
 };
 }
 #endif // FRAMEDATA_H

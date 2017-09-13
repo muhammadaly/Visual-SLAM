@@ -30,3 +30,54 @@ visual_slam::EigenUtilites::EigenUtilites()
 {
 
 }
+
+bool visual_slam::EigenUtilites::isBigTranfo(const Eigen::Matrix4f)
+{
+  double roll, pitch, yaw, dist;
+
+  mat2RPY(t, roll,pitch,yaw);
+  mat2dist(t, dist);
+
+  roll = roll/M_PI*180;
+  pitch = pitch/M_PI*180;
+  yaw = yaw/M_PI*180;
+
+  double max_angle = std::max(roll,std::max(pitch,yaw));
+
+  return (dist > ParameterServer::instance()->get<double>("min_translation_meter")
+      || max_angle > ParameterServer::instance()->get<double>("min_rotation_degree"));
+}
+
+void visual_slam::EigenUtilites::mat2RPY(const Eigen::Matrix4f &t, double &roll, double &pitch, double &yaw)
+{
+  roll = atan2(t(2,1),t(2,2));
+  pitch = atan2(-t(2,0),sqrt(t(2,1)*t(2,1)+t(2,2)*t(2,2)));
+  yaw = atan2(t(1,0),t(0,0));
+}
+
+void visual_slam::EigenUtilites::mat2dist(const Eigen::Matrix4f &t, double &dist)
+{
+  dist = sqrt(t(0,3)*t(0,3)+t(1,3)*t(1,3)+t(2,3)*t(2,3));
+}
+
+bool visual_slam::EigenUtilites::isSmallTrafo(const Eigen::Isometry3d &t, double seconds)
+{
+  if(seconds <= 0.0){
+    ROS_WARN("Time delta invalid: %f. Skipping test for small transformation", seconds);
+    return true;
+  }
+
+  double angle_around_axis, dist;
+  trafoSize(t, angle_around_axis, dist);
+
+  ParameterServer* ps =  ParameterServer::instance();
+  return (dist / seconds < ps->get<double>("max_translation_meter") &&
+          angle_around_axis / seconds < ps->get<double>("max_rotation_degree"));
+}
+
+void visual_slam::EigenUtilites::trafoSize(const Eigen::Isometry3d &t, double &angle, double &dist)
+{
+  angle = acos((t.rotation().trace() -1)/2 ) *180.0 / M_PI;
+  dist = t.translation().norm();
+  ROS_INFO("Rotation:% 4.2f, Distance: % 4.3fm", angle, dist);
+}

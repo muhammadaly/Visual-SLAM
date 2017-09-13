@@ -3,6 +3,7 @@
 
 #include "framedata.h"
 #include <tf/Transform.h>
+#include <Utilities/EigenUtilites.h>
 
 namespace visual_slam {
 
@@ -11,6 +12,11 @@ class GraphManager
 public:
   GraphManager();
   bool addFrame(FrameData* new_frame);
+
+  tf::StampedTransform stampedTransformInWorldFrame(const Node* node,
+                                                    const tf::Transform& computed_motion) const;
+  void broadcastTransform(const tf::StampedTransform& computed_motion);
+
 private:
   int min_matches;
   bool reset_request_;
@@ -18,7 +24,12 @@ private:
   unsigned int next_vertex_id;
   int earliest_loop_closure_node_;
   tf::Transform  init_base_pose_;
-    unsigned int marker_id_;
+  unsigned int marker_id_;
+  bool localization_only_;
+
+  bool valid_tf_estimate_;
+
+  visual_slam::MatchingResult curr_best_result_;
 
   std::vector<int> keyframe_ids_;
   bool process_node_runs_;

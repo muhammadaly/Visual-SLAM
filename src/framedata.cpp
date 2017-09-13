@@ -147,3 +147,13 @@ cv::Mat visual_slam::FrameData::getDescriptors() const
 {
   
 }
+
+visual_slam::MatchingResult visual_slam::FrameData::matchNodePair(visual_slam::FrameData *)
+{
+
+}
+
+visual_slam::myHeader visual_slam::FrameData::getHeaderTime() const
+{
+  return _header.stamp;
+}
