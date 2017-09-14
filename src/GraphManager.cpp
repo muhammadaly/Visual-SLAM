@@ -158,8 +158,7 @@ bool GraphManager::nodeComparisons(FrameData* new_node,
     process_node_runs_ = true;
 
     int num_keypoints = (int)new_node->feature_locations_2d_.size();
-    if (num_keypoints < min_matches) && 
-        ! keep_all_nodes))
+    if (num_keypoints < min_matches &&! keep_all_nodes)
     {
         ROS_INFO("Found only %i features on image, node is not included", num_keypoints);
         process_node_runs_ = false;
@@ -293,9 +292,9 @@ bool GraphManager::nodeComparisons(FrameData* new_node,
                     predecessor_matched = true;
                   }
 
-#ifdef DO_FEATURE_OPTIMIZATION
-                  updateLandmarks(mr, graph_[mr.edge.id1],new_node);
-#endif
+//#ifdef DO_FEATURE_OPTIMIZATION
+//                  updateLandmarks(mr, graph_[mr.edge.id1],new_node);
+//#endif
                   updateInlierFeatures(mr, new_node, graph_[mr.edge.id1]);
                   graph_[mr.edge.id1]->valid_tf_estimate_ = true;
                   ROS_INFO("Added Edge between %i and %i. Inliers: %i",mr.edge.id1,mr.edge.id2,(int) mr.inlier_matches.size());
@@ -322,9 +321,9 @@ bool GraphManager::nodeComparisons(FrameData* new_node,
               if (isSmallTrafo(mr.edge.transform, delta_time.toSec()) &&
                   addEdgeToG2O(mr.edge, node_to_compare, new_node, isBigTrafo(mr.edge.transform), mr.inlier_matches.size() > curr_best_result_.inlier_matches.size(), curr_motion_estimate))
               {
-#ifdef DO_FEATURE_OPTIMIZATION
-                updateLandmarks(mr, node_to_compare, new_node);
-#endif
+//#ifdef DO_FEATURE_OPTIMIZATION
+//                updateLandmarks(mr, node_to_compare, new_node);
+//#endif
                 graph_[new_node->id_] = new_node; //Needs to be added
                 if(mr.edge.id1 == mr.edge.id2-1 ) {//older == newer-1
                   predecessor_matched = true;
