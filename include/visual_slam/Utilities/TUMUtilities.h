@@ -18,7 +18,6 @@ public :
 
 private:
   std::string gt_filename , result_filename;
-  std::unique_ptr<EigenUtilites> eigen_utilities;
 
   std::vector<std::string> getTimeStamps();
 };

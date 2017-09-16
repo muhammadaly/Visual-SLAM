@@ -11,6 +11,7 @@
 #include <tf/transform_datatypes.h>
 #include <sensor_msgs/CameraInfo.h>
 #include <MatchingResult.h>
+#include <myHeader.h>
 
 namespace visual_slam {
 class FrameData
@@ -49,8 +50,8 @@ public:
     cv::Mat getSceneFeatureDescriptors() const;
     void setSequenceId(unsigned int sequenceId);
     tf::StampedTransform getGroundTruthTransform() const;
-    visual_slam::MatchingResult matchNodePair(FrameData*);
-    visual_slam::myHeader getHeaderTime()const;
+    MatchingResult matchNodePair(FrameData*);
+    ros::Time getHeaderTime()const;
 private:
     cv::Mat _frameMatrix;
     cv::Mat _depthMatrix;
@@ -62,11 +63,11 @@ private:
     unsigned int _id;
     unsigned int _sequenceId;
     unsigned int _vertexId;
-    visual_slam::TFMatrix RobotPose;
+    TFMatrix RobotPose;
     tf::StampedTransform ground_truth_transform_;
     cv::Mat _sceneFeatureDescriptors;
     unsigned int _sequence_id;
-    visual_slam::myHeader _header;
+    myHeader _header;
 };
 }
 #endif // FRAMEDATA_H

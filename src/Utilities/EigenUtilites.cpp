@@ -1,5 +1,7 @@
 #include "Utilities/EigenUtilites.h"
 
+visual_slam::EigenUtilites* visual_slam::EigenUtilites::s_instance = NULL;
+
 visual_slam::FQuarterionRotation visual_slam::EigenUtilites::ExtractRotationMatrixAsQuaternion(DTFMatrix transformationMatrix)
 {
   FRotationMatrix rotationMatrix;
@@ -26,12 +28,8 @@ visual_slam::FTranslatonVec visual_slam::EigenUtilites::ExtractTranslationVector
   translationVec(2) = transformationMatrix(2,3);
   return translationVec;
 }
-visual_slam::EigenUtilites::EigenUtilites()
-{
 
-}
-
-bool visual_slam::EigenUtilites::isBigTranfo(const Eigen::Matrix4f)
+bool visual_slam::EigenUtilites::isBigTranfo(const Eigen::Matrix4f t)
 {
   double roll, pitch, yaw, dist;
 
@@ -44,8 +42,8 @@ bool visual_slam::EigenUtilites::isBigTranfo(const Eigen::Matrix4f)
 
   double max_angle = std::max(roll,std::max(pitch,yaw));
 
-  return (dist > ParameterServer::instance()->get<double>("min_translation_meter")
-      || max_angle > ParameterServer::instance()->get<double>("min_rotation_degree"));
+  return (dist > min_translation_meter
+      || max_angle > min_rotation_degree);
 }
 
 void visual_slam::EigenUtilites::mat2RPY(const Eigen::Matrix4f &t, double &roll, double &pitch, double &yaw)
@@ -70,9 +68,8 @@ bool visual_slam::EigenUtilites::isSmallTrafo(const Eigen::Isometry3d &t, double
   double angle_around_axis, dist;
   trafoSize(t, angle_around_axis, dist);
 
-  ParameterServer* ps =  ParameterServer::instance();
-  return (dist / seconds < ps->get<double>("max_translation_meter") &&
-          angle_around_axis / seconds < ps->get<double>("max_rotation_degree"));
+  return (dist / seconds < max_translation_meter &&
+          angle_around_axis / seconds < max_rotation_degree);
 }
 
 void visual_slam::EigenUtilites::trafoSize(const Eigen::Isometry3d &t, double &angle, double &dist)
@@ -80,4 +77,32 @@ void visual_slam::EigenUtilites::trafoSize(const Eigen::Isometry3d &t, double &a
   angle = acos((t.rotation().trace() -1)/2 ) *180.0 / M_PI;
   dist = t.translation().norm();
   ROS_INFO("Rotation:% 4.2f, Distance: % 4.3fm", angle, dist);
+}
+
+visual_slam::EigenUtilites::EigenUtilites()
+{
+
+}
+
+template <typename T >
+tf::Transform visual_slam::EigenUtilites::eigenTransf2TF(const T& transf)
+{
+      tf::Transform result;
+      tf::Vector3 translation;
+      translation.setX(transf.translation().x());
+      translation.setY(transf.translation().y());
+      translation.setZ(transf.translation().z());
+
+      tf::Quaternion rotation;
+      Eigen::Quaterniond quat;
+      quat = transf.rotation();
+      rotation.setX(quat.x());
+      rotation.setY(quat.y());
+      rotation.setZ(quat.z());
+      rotation.setW(quat.w());
+
+      result.setOrigin(translation);
+      result.setRotation(rotation);
+      //printTransform("from conversion", result);
+      return result;
 }

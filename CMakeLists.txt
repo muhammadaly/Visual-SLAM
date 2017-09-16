@@ -66,6 +66,7 @@ add_definitions(${PCL_DEFINITIONS})
 set(SOURCES src/framedata.cpp
     src/robot_pose.cpp
     src/OpenNIListener.cpp
+    src/myHeader.cpp
 #    src/GraphManager.cpp
     src/Feature_Extraction/CVORBFeatureExtractorAndDescriptor.cpp
     src/Feature_Extraction/CVSURFFeatureExtractorAndDescriptor.cpp
@@ -89,7 +90,8 @@ set(SOURCES src/framedata.cpp
     src/Map_Optimization/g2omapoptimizer.cpp)
 
 set(HEADERS include/visual_slam/framedata.h
-    include/visual_slam/robot_pose.h
+    include/visual_slam/robot_pose.h    
+    include/visual_slam/myHeader.h
     include/visual_slam/OpenNIListener.h
 #    include/visual_slam/GraphManager.h
     include/visual_slam/Feature_Extraction/FeatureExtractorAndDescriptor.h

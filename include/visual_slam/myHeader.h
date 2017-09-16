@@ -1,6 +1,8 @@
 #ifndef MYHEADER_H
 #define MYHEADER_H
 
+# include <std_msgs/Header.h>
+#include <pcl/PCLHeader.h>
 namespace visual_slam {
 
 class myHeader {

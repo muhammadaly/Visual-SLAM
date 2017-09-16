@@ -2,7 +2,6 @@
 
 visual_slam::TUMUtilities::TUMUtilities(std::string ground_truth_filename,std::string presult_filename)
 {
-  eigen_utilities = std::unique_ptr<EigenUtilites>(new EigenUtilites);
   gt_filename = ground_truth_filename;
   result_filename = presult_filename;
 }
@@ -19,8 +18,8 @@ bool visual_slam::TUMUtilities::writingResults(std::vector<visual_slam::Pose_6D>
   for(int ind = 0 ; ind < poses.size();ind++)
   {
     DTFMatrix tmp = poses[ind].matrix();
-    FQuarterionRotation rotation = eigen_utilities->ExtractRotationMatrixAsQuaternion(tmp);
-    FTranslatonVec translation = eigen_utilities->ExtractTranslationVector(tmp);
+    FQuarterionRotation rotation = EigenUtilites::instance()->ExtractRotationMatrixAsQuaternion(tmp);
+    FTranslatonVec translation = EigenUtilites::instance()->ExtractTranslationVector(tmp);
 
     std::string line = timestamps[ind];
     line += " ";

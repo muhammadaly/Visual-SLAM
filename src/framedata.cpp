@@ -2,6 +2,7 @@
 
 visual_slam::FrameData::FrameData()
 {
+  _header = myHeader();
 }
 
 visual_slam::FrameData::FrameData(cv::Mat pframeMatrix, std::string pfileName)
@@ -153,7 +154,7 @@ visual_slam::MatchingResult visual_slam::FrameData::matchNodePair(visual_slam::F
 
 }
 
-visual_slam::myHeader visual_slam::FrameData::getHeaderTime() const
+ros::Time visual_slam::FrameData::getHeaderTime() const
 {
   return _header.stamp;
 }
