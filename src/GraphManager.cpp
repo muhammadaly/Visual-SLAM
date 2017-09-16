@@ -106,13 +106,13 @@ void GraphManager::firstNode(FrameData* new_frame)
 {
     new_frame->setId(graph_.size());
     new_frame->setSequenceId(next_seq_id++); // allways incremented, even if node is not added
-    init_base_pose_ =  new_node->getGroundTruthTransform();//identity if no MoCap available
+    init_base_pose_ =  new_frame->getGroundTruthTransform();//identity if no MoCap available
     //printTransform("Ground Truth Transform for First Node", init_base_pose_);
 
     g2o::VertexSE3* reference_pose = new g2o::VertexSE3;
     new_frame->vertex_id_ = next_vertex_id++;
     graph_[new_frame->getId()] = new_frame;
-    reference_pose->setId(new_node->getVertexId());
+    reference_pose->setId(new_frame->getVertexId());
 
     camera_vertices.insert(reference_pose);
 
@@ -124,7 +124,7 @@ void GraphManager::firstNode(FrameData* new_frame)
     optimizer_->addVertex(reference_pose);
     optimizer_mutex_.unlock();
 
-    this->addKeyframe(new_node->id_);
+    this->addKeyframe(new_frame->id_);
 
     process_node_runs_ = false;
 }
@@ -150,15 +150,14 @@ void GraphManager::addKeyframe(int id, bool pClearNonKeyframes)
   keyframe_ids_.push_back(id);
 }
 
-bool GraphManager::nodeComparisons(FrameData* new_node, 
+bool GraphManager::nodeComparisons(FrameData* new_frame, 
                                    QMatrix4x4& curr_motion_estimate,
                                    bool& edge_to_keyframe)///Output:contains the best-yet of the pairwise motion estimates for the current node
 {
-    /// \callergraph
     process_node_runs_ = true;
 
-    int num_keypoints = (int)new_node->feature_locations_2d_.size();
-    if (num_keypoints < min_matches &&! keep_all_nodes)
+    int num_keypoints = (int)new_frame->getNumberOfFeatures();
+    if (num_keypoints < min_matches)
     {
         ROS_INFO("Found only %i features on image, node is not included", num_keypoints);
         process_node_runs_ = false;
@@ -166,14 +165,13 @@ bool GraphManager::nodeComparisons(FrameData* new_node,
     }
 
     //setting of the node id needs to be done here as the graph size can change inside this method
-    new_node->setGraphNodeId(graph_.size());
-    new_node->setSequence_id(next_seq_id++); // allways incremented, even if node is not added
+    new_frame->setGraphNodeId(graph_.size());
+    new_frame->setSequence_id(next_seq_id++); // allways incremented, even if node is not added
 
 
-    earliest_loop_closure_node_ = new_node->getGraphNodeId();
+    earliest_loop_closure_node_ = new_frame->getGraphNodeId();
     unsigned int num_edges_before = cam_cam_edges_.size();
     edge_to_keyframe = false; //not yet found
-    marker_id_ = 0; //overdraw old markers
     ROS_DEBUG("Graphsize: %d Nodes", (int) graph_.size());
 
     int sequentially_previous_id = graph_.rbegin()->second->getGraphNodeId();
@@ -183,49 +181,45 @@ bool GraphManager::nodeComparisons(FrameData* new_node,
 
     //Initial Comparison ######################################################################
     bool predecessor_matched = false;
-    if(min_translation_meter > 0.0 || min_rotation_degree > 0.0)
-    {
+    if(min_translation_meter > 0.0 || min_rotation_degree > 0.0){
       //First check if trafo to last frame is big
       FrameData* prev_frame = graph_[graph_.size()-1];
       if(localization_only_ && curr_best_result_.edge.id1 > 0){ prev_frame =  graph_[curr_best_result_.edge.id1]; }
-      ROS_INFO("Comparing new node (%i) with previous node %i", new_node->id_, prev_frame->id_);
-      mr = new_node->matchNodePair(prev_frame);
-      ROS_INFO("Node comparison result: %s", mr.toString());
+      ROS_INFO("Comparing new node (%i) with previous node %i", new_frame->id_, prev_frame->id_);
+      mr = new_frame->matchNodePair(prev_frame);
+      //ROS_INFO("Node comparison result: %s", mr.toString());
       if(mr.edge.id1 >= 0 && mr.edge.id2 >= 0) {//Found trafo
         ros::Time time1 = prev_frame->header_.stamp;
-        ros::Time time2 = new_node->header_.stamp;
+        ros::Time time2 = new_frame->header_.stamp;
         ros::Duration delta_time =  time2 - time1;
-        if(!EigenUtilities->instance()->isBigTranfo(mr.edge.transform) ||
-           !EigenUtilities->instance()->isSmallTrafo(mr.edge.transform, delta_time.toSec())){ //Found trafo, but bad trafo (too small to big)
-            ROS_WARN("Transformation not within bounds. Did not add as Node");
+        if(EigenUtilities->instance()->isBigTranfo(mr.edge.transform) ||
+           EigenUtilities->instance()->isSmallTrafo(mr.edge.transform, delta_time.toSec())){ //Found trafo, but bad trafo (too small to big)
+            //ROS_WARN("Transformation not within bounds. Did not add as Node");
             tf::Transform incremental = EigenUtilities->instance()->eigenTransf2TF(mr.edge.transform);
             g2o::VertexSE3* v = dynamic_cast<g2o::VertexSE3*>(optimizer_->vertex(graph_[prev_frame->id_]->vertex_id_));
             tf::Transform previous = EigenUtilities->instance()->eigenTransf2TF(v->estimate());
             tf::Transform combined = previous*incremental;
-            latest_transform_cache_ = stampedTransformInWorldFrame(new_node, combined);
+            latest_transform_cache_ = stampedTransformInWorldFrame(new_frame, combined);
             //printTransform("Computed new transform", latest_transform_cache_);
             broadcastTransform(latest_transform_cache_);
             process_node_runs_ = false;
             curr_best_result_ = mr;
             return false;
-        }
-        else
-        { //Good Transformation
-          ROS_DEBUG_STREAM("Information Matrix for Edge (" << mr.edge.id1 << "<->" << mr.edge.id2 << ") \n" << mr.edge.informationMatrix);
-          if (addEdgeToG2O(mr.edge, prev_frame, new_node,  true, true, curr_motion_estimate)) 
+        } 
+        else { //Good Transformation
+          //ROS_DEBUG_STREAM("Information Matrix for Edge (" << mr.edge.id1 << "<->" << mr.edge.id2 << ") \n" << mr.edge.informationMatrix);
+          if (addEdgeToG2O(mr.edge, prev_frame, new_frame,  true, true, curr_motion_estimate)) 
           {
-            graph_[new_node->id_] = new_node; //Needs to be added
+            graph_[new_frame->id_] = new_frame; //Needs to be added
             if(keyframe_ids_.contains(mr.edge.id1)) edge_to_keyframe = true;
-//#ifdef DO_FEATURE_OPTIMIZATION
-//            updateLandmarks(mr, prev_frame,new_node);
-//#endif
-            updateInlierFeatures(mr, new_node, prev_frame);
+            updateInlierFeatures(mr, new_frame, prev_frame);
             graph_[mr.edge.id1]->valid_tf_estimate_ = true;
             ROS_INFO("Added Edge between %i and %i. Inliers: %i",mr.edge.id1,mr.edge.id2,(int) mr.inlier_matches.size());
             curr_best_result_ = mr;
-            //addOutliers(Node* new_node, mr.inlier_matches);
+            //addOutliers(Node* new_frame, mr.inlier_matches);
 
-          } else {
+          } 
+          else {
             ROS_INFO("Edge not added");
             process_node_runs_ = false;
             return false;
@@ -241,13 +235,13 @@ bool GraphManager::nodeComparisons(FrameData* new_node,
 
     //Eigen::Matrix4f ransac_trafo, final_trafo;
     QList<int> vertices_to_comp;
-    int  seq_cand = localization_only_ ? 0 : ps->get<int>("predecessor_candidates") - 1; //minus one, because the first predecessor has already been checked
-    int geod_cand = ps->get<int>("neighbor_candidates");
-    int samp_cand = ps->get<int>("min_sampled_candidates");
+    int  seq_cand = localization_only_ ? 0 : predecessor_candidates - 1; //minus one, because the first predecessor has already been checked
+    int geod_cand = neighbor_candidates;
+    int samp_cand = min_sampled_candidates;
     if(predecessor_matched){
-      vertices_to_comp = getPotentialEdgeTargetsWithDijkstra(new_node, seq_cand, geod_cand, samp_cand, curr_best_result_.edge.id1); 
+      vertices_to_comp = getPotentialEdgeTargetsWithDijkstra(new_frame, seq_cand, geod_cand, samp_cand, curr_best_result_.edge.id1); 
     } else {
-      vertices_to_comp = getPotentialEdgeTargetsWithDijkstra(new_node, seq_cand, geod_cand, samp_cand, sequentially_previous_id, true); 
+      vertices_to_comp = getPotentialEdgeTargetsWithDijkstra(new_frame, seq_cand, geod_cand, samp_cand, sequentially_previous_id, true); 
     }
     if(prev_best >= 0 && !vertices_to_comp.contains(prev_best)){
       vertices_to_comp.append(prev_best);//Test: definitely reuse best (currently: the oldest) matched node from last
@@ -273,29 +267,25 @@ bool GraphManager::nodeComparisons(FrameData* new_node,
             ROS_WARN("Few Threads Remaining: Increasing maxThreadCount to %i", qtp->maxThreadCount()+1);
             qtp->setMaxThreadCount(qtp->maxThreadCount() + 1);
         }
-        QList<MatchingResult> results = QtConcurrent::blockingMapped(nodes_to_comp, boost::bind(&Node::matchNodePair, new_node, _1));
+        QList<MatchingResult> results = QtConcurrent::blockingMapped(nodes_to_comp, boost::bind(&Node::matchNodePair, new_frame, _1));
 
         for (int i = 0; i < results.size(); i++) 
         {
             MatchingResult& mr = results[i];
             ROS_INFO("Result of comparison %d: %s", i, mr.toString());
             if (mr.edge.id1 >= 0 ) {
-              //ROS_INFO("new node has id %i", new_node->id_);
+              //ROS_INFO("new node has id %i", new_frame->id_);
               assert(graph_[mr.edge.id1]);
 
-              ros::Duration delta_time = new_node->header_.stamp - graph_[mr.edge.id1]->header_.stamp;
+              ros::Duration delta_time = new_frame->header_.stamp - graph_[mr.edge.id1]->header_.stamp;
               if (isSmallTrafo(mr.edge.transform, delta_time.toSec()) &&
-                  addEdgeToG2O(mr.edge,graph_[mr.edge.id1],new_node, isBigTrafo(mr.edge.transform), mr.inlier_matches.size() > curr_best_result_.inlier_matches.size(), curr_motion_estimate))
+                  addEdgeToG2O(mr.edge,graph_[mr.edge.id1],new_frame, isBigTrafo(mr.edge.transform), mr.inlier_matches.size() > curr_best_result_.inlier_matches.size(), curr_motion_estimate))
                 { 
-                  graph_[new_node->id_] = new_node; //Needs to be added
+                  graph_[new_frame->id_] = new_frame; //Needs to be added
                   if(mr.edge.id1 == mr.edge.id2-1 ) {//older == newer-1
                     predecessor_matched = true;
                   }
-
-//#ifdef DO_FEATURE_OPTIMIZATION
-//                  updateLandmarks(mr, graph_[mr.edge.id1],new_node);
-//#endif
-                  updateInlierFeatures(mr, new_node, graph_[mr.edge.id1]);
+                  updateInlierFeatures(mr, new_frame, graph_[mr.edge.id1]);
                   graph_[mr.edge.id1]->valid_tf_estimate_ = true;
                   ROS_INFO("Added Edge between %i and %i. Inliers: %i",mr.edge.id1,mr.edge.id2,(int) mr.inlier_matches.size());
                   if (mr.inlier_matches.size() > curr_best_result_.inlier_matches.size()) {
@@ -312,23 +302,20 @@ bool GraphManager::nodeComparisons(FrameData* new_node,
     } else { //Nonconcurrent
         for (int id_of_id = (int) vertices_to_comp.size() - 1; id_of_id >= 0; id_of_id--) {
             Node* node_to_compare = graph_[vertices_to_comp[id_of_id]];
-            ROS_INFO("Comparing new node (%i) with node %i / %i", new_node->id_, vertices_to_comp[id_of_id], node_to_compare->id_);
-            MatchingResult mr = new_node->matchNodePair(node_to_compare);
+            ROS_INFO("Comparing new node (%i) with node %i / %i", new_frame->id_, vertices_to_comp[id_of_id], node_to_compare->id_);
+            MatchingResult mr = new_frame->matchNodePair(node_to_compare);
             ROS_INFO("Result of comparison: %s", mr.toString());
 
             if (mr.edge.id1 >= 0) {
-              ros::Duration delta_time = new_node->header_.stamp - graph_[mr.edge.id1]->header_.stamp;
+              ros::Duration delta_time = new_frame->header_.stamp - graph_[mr.edge.id1]->header_.stamp;
               if (isSmallTrafo(mr.edge.transform, delta_time.toSec()) &&
-                  addEdgeToG2O(mr.edge, node_to_compare, new_node, isBigTrafo(mr.edge.transform), mr.inlier_matches.size() > curr_best_result_.inlier_matches.size(), curr_motion_estimate))
+                  addEdgeToG2O(mr.edge, node_to_compare, new_frame, isBigTrafo(mr.edge.transform), mr.inlier_matches.size() > curr_best_result_.inlier_matches.size(), curr_motion_estimate))
               {
-//#ifdef DO_FEATURE_OPTIMIZATION
-//                updateLandmarks(mr, node_to_compare, new_node);
-//#endif
-                graph_[new_node->id_] = new_node; //Needs to be added
+                graph_[new_frame->id_] = new_frame; //Needs to be added
                 if(mr.edge.id1 == mr.edge.id2-1 ) {//older == newer-1
                   predecessor_matched = true;
                 }
-                updateInlierFeatures(mr, new_node, node_to_compare);
+                updateInlierFeatures(mr, new_frame, node_to_compare);
                 graph_[mr.edge.id1]->valid_tf_estimate_ = true;
                 ROS_INFO("Added Edge between %i and %i. Inliers: %i",mr.edge.id1,mr.edge.id2,(int) mr.inlier_matches.size());
                 if (mr.inlier_matches.size() > curr_best_result_.inlier_matches.size()) {
@@ -350,12 +337,12 @@ bool GraphManager::nodeComparisons(FrameData* new_node,
 
     //END OF MAIN LOOP: Compare node pairs ######################################################################
     bool found_trafo = (cam_cam_edges_.size() != num_edges_before);
-    bool valid_odometry = !ps->get<std::string>("odom_frame_name").empty();// || odom_tf_old.frame_id_ == "missing_odometry" || odom_tf_new.frame_id_ == "missing_odometry"; 
+    bool valid_odometry = !odom_frame_name.empty();
 
     bool keep_anyway = (ps->get<bool>("keep_all_nodes") || 
-                        (((int)new_node->feature_locations_3d_.size() > ps->get<int>("min_matches")) 
+                        (((int)new_frame->feature_locations_3d_.size() > ps->get<int>("min_matches")) 
                          && ps->get<bool>("keep_good_nodes")));
-    ros::Duration delta_time = new_node->header_.stamp - graph_[sequentially_previous_id]->header_.stamp;
+    ros::Duration delta_time = new_frame->header_.stamp - graph_[sequentially_previous_id]->header_.stamp;
     float time_delta_sec = fabs(delta_time.toSec());
     ROS_WARN_COND(time_delta_sec >= 0.1, "Time jump (time delta: %.2f)", time_delta_sec);
 
@@ -368,15 +355,15 @@ bool GraphManager::nodeComparisons(FrameData* new_node,
       LoadedEdge3D odom_edge;
 
       odom_edge.id1 = sequentially_previous_id;
-      odom_edge.id2 = new_node->id_;
+      odom_edge.id2 = new_frame->id_;
       odom_edge.transform.setIdentity();
       curr_motion_estimate = eigenTF2QMatrix(odom_edge.transform);
       odom_edge.informationMatrix = Eigen::Matrix<double,6,6>::Zero(); 
       ROS_WARN("No valid (sequential) transformation between %d and %d: Using constant position assumption.", odom_edge.id1, odom_edge.id2);
       odom_edge.informationMatrix = Eigen::Matrix<double,6,6>::Identity() / time_delta_sec;//e-9; 
-      addEdgeToG2O(odom_edge,graph_[sequentially_previous_id],new_node, true,true, curr_motion_estimate);
-      graph_[new_node->id_] = new_node; //Needs to be added
-      new_node->valid_tf_estimate_ = false; //Don't use for postprocessing, rendering etc
+      addEdgeToG2O(odom_edge,graph_[sequentially_previous_id],new_frame, true,true, curr_motion_estimate);
+      graph_[new_frame->id_] = new_frame; //Needs to be added
+      new_frame->valid_tf_estimate_ = false; //Don't use for postprocessing, rendering etc
       MatchingResult mr;
       mr.edge = odom_edge;
       curr_best_result_ = mr;
@@ -503,21 +490,22 @@ bool visual_slam::GraphManager::addEdgeToG2O(const LoadedEdge3D& edge,
     return true;
 }
 
-void visual_slam::GraphManager::updateInlierFeatures(const MatchingResult& mr, Node* new_node, Node* old_node)
+void visual_slam::GraphManager::updateInlierFeatures(const MatchingResult& mr, Node* new_frame, Node* old_node)
 {
   BOOST_FOREACH(const cv::DMatch& match, mr.inlier_matches){
-    assert(new_node->feature_matching_stats_.size() > match.queryIdx);
+    assert(new_frame->feature_matching_stats_.size() > match.queryIdx);
     assert(old_node->feature_matching_stats_.size() > match.trainIdx);
-    unsigned char& new_flag = new_node->feature_matching_stats_[match.queryIdx];
+    unsigned char& new_flag = new_frame->feature_matching_stats_[match.queryIdx];
     if(new_flag < 255) ++new_flag;
     unsigned char& old_flag = old_node->feature_matching_stats_[match.trainIdx];
     if(old_flag < 255) ++old_flag;
   }
 }
 
-QList<int> GraphManager::getPotentialEdgeTargetsWithDijkstra(const Node* new_node, int sequential_targets, int geodesic_targets, int sampled_targets, int predecessor_id, bool include_predecessor)
+std::vector<int> visual_slam::GraphManager::getPotentialEdgeTargetsWithDijkstra(const FrameData* new_frame, int sequential_targets, int geodesic_targets,
+ int sampled_targets, int predecessor_id, bool include_predecessor = false)
 {
-    QList<int> ids_to_link_to; //return value
+    std::vector<int> ids_to_link_to; //return value
     if(predecessor_id < 0) predecessor_id = graph_.size()-1;
     //Prepare output
     std::stringstream ss;
@@ -544,7 +532,7 @@ QList<int> GraphManager::getPotentialEdgeTargetsWithDijkstra(const Node* new_nod
       g2o::HyperDijkstra hypdij(optimizer_);
       g2o::UniformCostFunction cost_function;
       g2o::VertexSE3* prev_vertex = dynamic_cast<g2o::VertexSE3*>(optimizer_->vertex(graph_[predecessor_id]->vertex_id_));
-      hypdij.shortestPaths(prev_vertex,&cost_function,ParameterServer::instance()->get<int>("geodesic_depth"));
+      hypdij.shortestPaths(prev_vertex,&cost_function,geodesic_depth);
       g2o::HyperGraph::VertexSet& vs = hypdij.visited();
 
       //Need to convert vertex_id to node id
@@ -576,7 +564,7 @@ QList<int> GraphManager::getPotentialEdgeTargetsWithDijkstra(const Node* new_nod
             ROS_ERROR("Vertex ID %d", it->first);
           }
         }
-        if(!graph_.at(id)->matchable_) continue;
+        if(!graph_.at(id)->isMatchable()) continue;
         if(id < predecessor_id-sequential_targets || (id > predecessor_id && id <= (int)graph_.size()-1)){ //Geodesic Neighbours except sequential
             int weight = abs(predecessor_id-id);
             neighbour_indices[id] = weight; //higher probability to be drawn if far away
@@ -636,4 +624,3 @@ QList<int> GraphManager::getPotentialEdgeTargetsWithDijkstra(const Node* new_nod
     ROS_INFO("%s", ss.str().c_str());
     return ids_to_link_to; //only compare to first frame
 }
-

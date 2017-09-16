@@ -52,6 +52,9 @@ public:
     tf::StampedTransform getGroundTruthTransform() const;
     MatchingResult matchNodePair(FrameData*);
     ros::Time getHeaderTime()const;
+    bool isMatchable();
+
+    int getNumberOfFeatures();
 private:
     cv::Mat _frameMatrix;
     cv::Mat _depthMatrix;
@@ -68,6 +71,7 @@ private:
     cv::Mat _sceneFeatureDescriptors;
     unsigned int _sequence_id;
     myHeader _header;
+    bool matchable_;
 };
 }
 #endif // FRAMEDATA_H

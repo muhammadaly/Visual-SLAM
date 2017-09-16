@@ -149,12 +149,22 @@ cv::Mat visual_slam::FrameData::getDescriptors() const
   
 }
 
+ros::Time visual_slam::FrameData::getHeaderTime() const
+{
+  return _header.stamp;
+}
+
+int visual_slam::FrameData::getNumberOfFeatures()
+{
+
+}
+
 visual_slam::MatchingResult visual_slam::FrameData::matchNodePair(visual_slam::FrameData *)
 {
 
 }
 
-ros::Time visual_slam::FrameData::getHeaderTime() const
+bool visual_slam::FrameData::isMatchable()
 {
-  return _header.stamp;
+  return matchable_;
 }
